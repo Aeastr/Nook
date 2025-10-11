@@ -1,5 +1,5 @@
 {
-  "originHash" : "ccaf047e1899acecebb40aabe971bd25c6b6afd753c4059a74ac1f246662d56f",
+  "originHash" : "40c55a126aafdfe7c8a80488ee36dd987298d006d30a8c5c5169b44812685f5e",
   "pins" : [
     {
       "identity" : "faviconfinder",
@@ -11,12 +11,30 @@
       }
     },
     {
+      "identity" : "logoutloud",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Aeastr/LogOutLoud",
+      "state" : {
+        "revision" : "8b1fb61045d78bd674e4061805e5e6cc69d06950",
+        "version" : "2.1.2"
+      }
+    },
+    {
       "identity" : "sparkle",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/sparkle-project/Sparkle",
       "state" : {
         "revision" : "9a1d2a19d3595fcf8d9c447173f9a1687b3dcadb",
         "version" : "2.8.0"
+      }
+    },
+    {
+      "identity" : "swift-log",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-log.git",
+      "state" : {
+        "revision" : "ce592ae52f982c847a4efc0dd881cc9eb32d29f2",
+        "version" : "1.6.4"
       }
     },
     {

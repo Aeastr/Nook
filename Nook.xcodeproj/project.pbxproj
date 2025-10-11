@@ -8,6 +8,9 @@
 
 /* Begin PBXBuildFile section */
 		2C16A0262E87430B0070894B /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 2C16A0252E87430B0070894B /* Sparkle */; };
+		564990F02E9A337200D89F78 /* LogOutLoud in Frameworks */ = {isa = PBXBuildFile; productRef = 564990EF2E9A337200D89F78 /* LogOutLoud */; };
+		564990F22E9A337200D89F78 /* LogOutLoudConsole in Frameworks */ = {isa = PBXBuildFile; productRef = 564990F12E9A337200D89F78 /* LogOutLoudConsole */; };
+		564990F42E9A337200D89F78 /* LogOutLoudExamples in Frameworks */ = {isa = PBXBuildFile; productRef = 564990F32E9A337200D89F78 /* LogOutLoudExamples */; };
 		7FAFC5DA2E3ADDCD009D7DC4 /* FaviconFinder in Frameworks */ = {isa = PBXBuildFile; productRef = 7FAFC5D92E3ADDCD009D7DC4 /* FaviconFinder */; };
 /* End PBXBuildFile section */
 
@@ -45,7 +48,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				7FAFC5DA2E3ADDCD009D7DC4 /* FaviconFinder in Frameworks */,
+				564990F42E9A337200D89F78 /* LogOutLoudExamples in Frameworks */,
 				2C16A0262E87430B0070894B /* Sparkle in Frameworks */,
+				564990F22E9A337200D89F78 /* LogOutLoudConsole in Frameworks */,
+				564990F02E9A337200D89F78 /* LogOutLoud in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -90,6 +96,9 @@
 			packageProductDependencies = (
 				7FAFC5D92E3ADDCD009D7DC4 /* FaviconFinder */,
 				2C16A0252E87430B0070894B /* Sparkle */,
+				564990EF2E9A337200D89F78 /* LogOutLoud */,
+				564990F12E9A337200D89F78 /* LogOutLoudConsole */,
+				564990F32E9A337200D89F78 /* LogOutLoudExamples */,
 			);
 			productName = Pulse;
 			productReference = 7F8340FC2E37F39400674A5D /* Nook.app */;
@@ -122,6 +131,7 @@
 			packageReferences = (
 				7FAFC5D82E3ADDCD009D7DC4 /* XCRemoteSwiftPackageReference "FaviconFinder" */,
 				2C16A0242E87430B0070894B /* XCRemoteSwiftPackageReference "Sparkle" */,
+				564990EE2E9A337200D89F78 /* XCRemoteSwiftPackageReference "LogOutLoud" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 7F8340FD2E37F39400674A5D /* Products */;
@@ -399,6 +409,14 @@
 				minimumVersion = 2.8.0;
 			};
 		};
+		564990EE2E9A337200D89F78 /* XCRemoteSwiftPackageReference "LogOutLoud" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Aeastr/LogOutLoud";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.1.2;
+			};
+		};
 		7FAFC5D82E3ADDCD009D7DC4 /* XCRemoteSwiftPackageReference "FaviconFinder" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/will-lumley/FaviconFinder";
@@ -414,6 +432,21 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 2C16A0242E87430B0070894B /* XCRemoteSwiftPackageReference "Sparkle" */;
 			productName = Sparkle;
+		};
+		564990EF2E9A337200D89F78 /* LogOutLoud */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 564990EE2E9A337200D89F78 /* XCRemoteSwiftPackageReference "LogOutLoud" */;
+			productName = LogOutLoud;
+		};
+		564990F12E9A337200D89F78 /* LogOutLoudConsole */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 564990EE2E9A337200D89F78 /* XCRemoteSwiftPackageReference "LogOutLoud" */;
+			productName = LogOutLoudConsole;
+		};
+		564990F32E9A337200D89F78 /* LogOutLoudExamples */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 564990EE2E9A337200D89F78 /* XCRemoteSwiftPackageReference "LogOutLoud" */;
+			productName = LogOutLoudExamples;
 		};
 		7FAFC5D92E3ADDCD009D7DC4 /* FaviconFinder */ = {
 			isa = XCSwiftPackageProductDependency;
