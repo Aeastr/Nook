@@ -8,6 +8,7 @@
 import AppKit
 import SwiftUI
 import UniformTypeIdentifiers
+import LogOutLoud
 
 struct SidebarMenuDownloadsTab: View {
     @EnvironmentObject var browserManager: BrowserManager
@@ -202,14 +203,12 @@ struct DownloadItem: View {
 
     private func openFile() {
         guard let destinationURL = download.destinationURL else {
-            print(
-                "No destination URL available for download: \(download.suggestedFilename)"
-            )
+            Logger.shared.log("No destination URL available for download", level: .error, tags: [.sidebar], metadata: ["filename": download.suggestedFilename])
             return
         }
 
         guard FileManager.default.fileExists(atPath: destinationURL.path) else {
-            print("File does not exist at path: \(destinationURL.path)")
+            Logger.shared.log("File does not exist at path", level: .error, tags: [.sidebar], metadata: ["path": destinationURL.path])
             return
         }
 
@@ -218,14 +217,12 @@ struct DownloadItem: View {
 
     private func copyFile() {
         guard let destinationURL = download.destinationURL else {
-            print(
-                "No destination URL available for download: \(download.suggestedFilename)"
-            )
+            Logger.shared.log("No destination URL available for download", level: .error, tags: [.sidebar], metadata: ["filename": download.suggestedFilename])
             return
         }
 
         guard FileManager.default.fileExists(atPath: destinationURL.path) else {
-            print("File does not exist at path: \(destinationURL.path)")
+            Logger.shared.log("File does not exist at path", level: .error, tags: [.sidebar], metadata: ["path": destinationURL.path])
             return
         }
 
@@ -236,14 +233,12 @@ struct DownloadItem: View {
 
     private func showInFinder() {
         guard let destinationURL = download.destinationURL else {
-            print(
-                "No destination URL available for download: \(download.suggestedFilename)"
-            )
+            Logger.shared.log("No destination URL available for download", level: .error, tags: [.sidebar], metadata: ["filename": download.suggestedFilename])
             return
         }
 
         guard FileManager.default.fileExists(atPath: destinationURL.path) else {
-            print("File does not exist at path: \(destinationURL.path)")
+            Logger.shared.log("File does not exist at path", level: .error, tags: [.sidebar], metadata: ["path": destinationURL.path])
             return
         }
 

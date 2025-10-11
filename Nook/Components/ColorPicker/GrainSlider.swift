@@ -1,4 +1,5 @@
 import SwiftUI
+import LogOutLoud
 
 // MARK: - GrainSlider
 // Custom horizontal slider with a sine-wave track and vertical white thumb
@@ -41,7 +42,12 @@ struct GrainSlider: View {
             .gesture(DragGesture(minimumDistance: 0).onChanged { g in
                 if !isDragging {
                     guard dragLockManager.startDrag(ownerID: dragSessionID) else {
-                        print("🚫 [GrainSlider] Drag blocked - \(dragLockManager.debugInfo)")
+                        Logger.shared.log(
+                            "Slider drag blocked",
+                            level: .debug,
+                            tags: [.dragLock, .ui],
+                            metadata: ["debugInfo": dragLockManager.debugInfo]
+                        )
                         return
                     }
                     isDragging = true

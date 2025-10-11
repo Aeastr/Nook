@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import LogOutLoud
 
 struct ChatMessage: Identifiable, Equatable {
     let id = UUID()
@@ -443,7 +444,7 @@ To enhance the web browsing experience by providing intelligent, context-aware s
                 }
             }
         } catch {
-            print("Failed to fetch Ollama models: \(error)")
+            Logger.shared.log("Failed to fetch Ollama models", level: .error, tags: [.sidebar], metadata: ["error": error.localizedDescription])
             await MainActor.run {
                 isFetchingModels = false
                 ollamaModels = []
@@ -568,13 +569,13 @@ To enhance the web browsing experience by providing intelligent, context-aware s
                 \(content)
                 
                 ---
-                User Question: 
+                User Question:
                 """
             }
         } catch {
-            print("Failed to extract page content: \(error)")
+            Logger.shared.log("Failed to extract page content", level: .error, tags: [.sidebar], metadata: ["error": error.localizedDescription])
         }
-        
+
         return ""
     }
     

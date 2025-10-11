@@ -8,6 +8,7 @@
 import SwiftUI
 import UniformTypeIdentifiers
 import AppKit
+import LogOutLoud
 
 // MARK: - Helpers
 
@@ -38,7 +39,7 @@ struct TabFolderView: View {
         let tabs = browserManager.tabManager.spacePinnedTabs(for: space.id)
             .filter { $0.folderId == folder.id }
             .sorted { $0.index < $1.index }
-        print("📁 Folder '\(folder.name)' contains \(tabs.count) tabs: \(tabs.map { $0.name })")
+        Logger.shared.log("Computed tabs in folder", level: .debug, tags: [.sidebar, .tabs], metadata: ["folderName": folder.name, "tabCount": "\(tabs.count)", "tabNames": tabs.map { $0.name }.joined(separator: ", ")])
         return tabs
     }
 
@@ -225,11 +226,11 @@ struct TabFolderView: View {
     }
 
     private func folderTabView(_ tab: Tab) -> some View {
-        print("👀 Rendering folder tab: \(tab.name)")
+        Logger.shared.log("Rendering folder tab", level: .debug, tags: [.sidebar, .tabs], metadata: ["tabName": tab.name])
         return SpaceTab(
             tab: tab,
             action: {
-                print("🖱️ Folder tab clicked: \(tab.name)")
+                Logger.shared.log("Folder tab clicked", level: .info, tags: [.sidebar, .tabs], metadata: ["tabName": tab.name])
                 onActivateTab(tab)
             },
             onClose: { browserManager.tabManager.removeTab(tab.id) },

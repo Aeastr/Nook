@@ -2,6 +2,7 @@ import AppKit
 import SwiftUI
 import UniformTypeIdentifiers
 import Sparkle
+import LogOutLoud
 
 struct SidebarView: View {
     @EnvironmentObject var browserManager: BrowserManager
@@ -56,9 +57,7 @@ struct SidebarView: View {
         
         // If the activeSpaceIndex is out of bounds, update it
         if activeSpaceIndex != safeActiveIndex {
-            print(
-                "⚠️ activeSpaceIndex out of bounds: \(activeSpaceIndex), correcting to: \(safeActiveIndex)"
-            )
+            Logger.shared.log("Active space index out of bounds, correcting", level: .debug, tags: [.sidebar], metadata: ["activeSpaceIndex": "\(activeSpaceIndex)", "safeActiveIndex": "\(safeActiveIndex)"])
             DispatchQueue.main.async {
                 self.activeSpaceIndex = safeActiveIndex
             }
@@ -83,9 +82,7 @@ struct SidebarView: View {
             indices.append(safeActiveIndex + 1)
         }
         
-        print(
-            "🔍 visibleSpaceIndices - activeSpaceIndex: \(activeSpaceIndex), safeIndex: \(safeActiveIndex), totalSpaces: \(totalSpaces), result: \(indices)"
-        )
+        Logger.shared.log("Computed visible space indices", level: .debug, tags: [.sidebar], metadata: ["activeSpaceIndex": "\(activeSpaceIndex)", "safeIndex": "\(safeActiveIndex)", "totalSpaces": "\(totalSpaces)", "indices": "\(indices)"])
         return indices
     }
     
@@ -357,11 +354,11 @@ struct SidebarView: View {
         .onChange(of: activeSpaceIndex) { _, newIndex in
             // Add explicit bounds checking to prevent index out of range crashes
             guard newIndex >= 0 && newIndex < browserManager.tabManager.spaces.count else {
-                print("⚠️ Invalid space index in onChange: \(newIndex), spaces count: \(browserManager.tabManager.spaces.count)")
+                Logger.shared.log("Invalid space index in onChange", level: .error, tags: [.sidebar], metadata: ["newIndex": "\(newIndex)", "spacesCount": "\(browserManager.tabManager.spaces.count)"])
                 return
             }
             let space = browserManager.tabManager.spaces[newIndex]
-            print("🎯 Page changed to space: \(space.name) (index: \(newIndex))")
+            Logger.shared.log("Page changed to space", level: .info, tags: [.sidebar], metadata: ["spaceName": space.name, "index": "\(newIndex)"])
             
             // Trigger haptic feedback
             let impact = NSHapticFeedbackManager.defaultPerformer
@@ -504,7 +501,7 @@ struct SidebarView: View {
 
                         browserManager.dialogManager.closeDialog()
                     } catch {
-                        print("⚠️ Failed to update space \(spaceId.uuidString):", error)
+                        Logger.shared.log("Failed to update space", level: .error, tags: [.sidebar], metadata: ["spaceId": spaceId.uuidString, "error": error.localizedDescription])
                     }
                 },
                 onCancel: {

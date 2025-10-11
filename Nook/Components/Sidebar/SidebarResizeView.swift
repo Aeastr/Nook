@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import LogOutLoud
 
 struct SidebarResizeView: View {
     @EnvironmentObject var browserManager: BrowserManager
@@ -69,7 +70,7 @@ struct SidebarResizeView: View {
 
                             if !isResizing {
                                 guard dragLockManager.startDrag(ownerID: dragSessionID) else {
-                                    print("🚫 [SidebarResizeView] Resize drag blocked - \(dragLockManager.debugInfo)")
+                                    Logger.shared.log("Resize drag blocked", level: .debug, tags: [.sidebar, .ui], metadata: ["debugInfo": dragLockManager.debugInfo])
                                     return
                                 }
 

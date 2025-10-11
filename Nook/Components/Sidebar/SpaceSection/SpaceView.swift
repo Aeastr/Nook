@@ -7,6 +7,7 @@
 
 import SwiftUI
 import UniformTypeIdentifiers
+import LogOutLoud
 
 // MARK: - Supporting Types
 struct FolderWithTabs: Hashable {
@@ -88,7 +89,7 @@ struct SpaceView: View {
 
     private var folders: [TabFolder] {
         let folders = browserManager.tabManager.folders(for: space.id)
-        print("🔄 SpaceView.folders recomputed: \(folders.count) folders")
+        Logger.shared.log("Folders recomputed", level: .debug, tags: [.sidebar], metadata: ["folderCount": "\(folders.count)", "spaceName": space.name])
         return folders
     }
 
@@ -123,9 +124,7 @@ struct SpaceView: View {
         let sortedNonFolderTabs = nonFolderSpacePinnedTabs.sorted { $0.index < $1.index }
         items.append(contentsOf: sortedNonFolderTabs)
 
-        print("🔄 spacePinnedItems recomputed: \(items.count) items (folderChangeCount: \(folderChangeCount), folders: \(currentFolders.count))")
-        print("   - nonFolderSpacePinnedTabs: \(nonFolderSpacePinnedTabs.count)")
-        print("   - folderSpacePinnedTabs: \(folderSpacePinnedTabs.count)")
+        Logger.shared.log("Space pinned items recomputed", level: .debug, tags: [.sidebar, .tabs], metadata: ["itemCount": "\(items.count)", "folderChangeCount": "\(folderChangeCount)", "foldersCount": "\(currentFolders.count)", "nonFolderTabs": "\(nonFolderSpacePinnedTabs.count)", "folderTabs": "\(folderSpacePinnedTabs.count)"])
         return items
     }
     
@@ -610,9 +609,9 @@ struct SpaceView: View {
     }
     
     // MARK: - Folder Management
-    
+
     private func renameFolder(_ folder: TabFolder) {
-        print("Rename folder: \(folder.name)")
+        Logger.shared.log("Rename folder requested", level: .info, tags: [.sidebar], metadata: ["folderName": folder.name])
     }
     
     private func deleteFolder(_ folder: TabFolder) {

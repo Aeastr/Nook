@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import LogOutLoud
 
 struct SpaceTab: View {
     @ObservedObject var tab: Tab
@@ -23,7 +24,7 @@ struct SpaceTab: View {
     var body: some View {
         Button(action: {
             if isCurrentTab {
-                print("🔄 [SpaceTab] Starting rename for tab '\(tab.name)' in window \(windowState.id)")
+                Logger.shared.log("Starting rename for tab", level: .info, tags: [.sidebar, .tabs], metadata: ["tabName": tab.name, "windowId": windowState.id.uuidString])
                 tab.startRenaming()
                 isTextFieldFocused = true
             } else {

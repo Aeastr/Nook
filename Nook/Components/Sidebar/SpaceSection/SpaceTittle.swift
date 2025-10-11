@@ -1,4 +1,5 @@
 import SwiftUI
+import LogOutLoud
 
 struct SpaceTitle: View {
     @EnvironmentObject var browserManager: BrowserManager
@@ -41,7 +42,7 @@ struct SpaceTitle: View {
                         .font(.system(size: iconSize))
                         .background(EmojiPickerAnchor(manager: emojiManager))
                         .onChange(of: emojiManager.selectedEmoji) { _, newValue in
-                            print(newValue)
+                            Logger.shared.log("Space icon changed", level: .info, tags: [.sidebar], metadata: ["emoji": newValue, "spaceName": space.name])
                             space.icon = newValue
                             browserManager.tabManager.persistSnapshot()
                          }
@@ -231,7 +232,7 @@ struct SpaceTitle: View {
                     newName: newName
                 )
             } catch {
-                print("⚠️ Failed to rename space \(space.id.uuidString):", error)
+                Logger.shared.log("Failed to rename space", level: .error, tags: [.sidebar], metadata: ["spaceId": space.id.uuidString, "error": error.localizedDescription])
             }
         }
         isRenaming = false
@@ -243,7 +244,7 @@ struct SpaceTitle: View {
     }
 
     private func createFolder() {
-        print("🎯 SpaceTitle.createFolder() called for space '\(space.name)' (id: \(space.id.uuidString.prefix(8))...)")
+        Logger.shared.log("Creating folder for space", level: .info, tags: [.sidebar], metadata: ["spaceName": space.name, "spaceId": String(space.id.uuidString.prefix(8))])
         browserManager.tabManager.createFolder(for: space.id)
     }
 
