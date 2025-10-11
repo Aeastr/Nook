@@ -8,6 +8,7 @@
 
 import SwiftUI
 import UniformTypeIdentifiers
+import LogOutLoud
 #if canImport(AppKit)
 import AppKit
 #endif
@@ -154,7 +155,15 @@ struct SidebarSectionDropDelegate: DropDelegate {
     func validateDrop(info: DropInfo) -> Bool { true }
 
     func dropEntered(info: DropInfo) {
-        print("🎯 [SidebarSectionDropDelegate] Drop entered: container=\(container), location=\(info.location)")
+        Logger.shared.log(
+            "[SidebarSectionDropDelegate] Drop entered",
+            level: .info,
+            tags: [.dragDrop],
+            metadata: [
+                "container": "\(container)",
+                "location": "\(info.location)"
+            ]
+        )
         updateTarget(with: info)
     }
 
@@ -187,7 +196,12 @@ struct SidebarSectionDropDelegate: DropDelegate {
             // Empty zone: use global insertion line via frame provider
             if let frameProvider = insertionLineFrameProvider {
                 let frame = frameProvider()
-                print("📐 [SidebarSectionDropDelegate] Empty zone frame (raw): \(frame)")
+                Logger.shared.log(
+                    "[SidebarSectionDropDelegate] Empty zone frame (raw)",
+                    level: .debug,
+                    tags: [.dragDrop, .ui],
+                    metadata: ["frame": "\(frame)"]
+                )
                 // If a global container frame is provided, convert local to global by offsetting
                 if let containerFrame = globalFrameProvider?() {
                     let converted = CGRect(
@@ -196,18 +210,32 @@ struct SidebarSectionDropDelegate: DropDelegate {
                         width: frame.width,
                         height: frame.height
                     )
-                    print("📐 [SidebarSectionDropDelegate] Empty zone frame (global): \(converted)")
+                    Logger.shared.log(
+                        "[SidebarSectionDropDelegate] Empty zone frame (global)",
+                        level: .debug,
+                        tags: [.dragDrop, .ui],
+                        metadata: ["frame": "\(converted)"]
+                    )
                     dragManager.updateInsertionLine(frame: converted)
                 } else {
                     dragManager.updateInsertionLine(frame: frame)
                 }
             } else {
-                print("⚠️ [SidebarSectionDropDelegate] No frame provider for empty zone")
+                Logger.shared.log(
+                    "[SidebarSectionDropDelegate] No frame provider for empty zone",
+                    level: .warning,
+                    tags: [.dragDrop]
+                )
                 dragManager.updateInsertionLine(frame: .zero)
             }
         } else {
             // Non-empty zone: calculate insertion line frame based on boundaries
-            print("📐 [SidebarSectionDropDelegate] Non-empty boundaries: \(boundaries.count) items")
+            Logger.shared.log(
+                "[SidebarSectionDropDelegate] Non-empty boundaries",
+                level: .debug,
+                tags: [.dragDrop, .ui],
+                metadata: ["boundariesCount": "\(boundaries.count)"]
+            )
             
             // Calculate the frame for the insertion line at the target index
             let targetY = (index < boundaries.count) ? boundaries[index] : (boundaries.last ?? 0)
@@ -221,7 +249,12 @@ struct SidebarSectionDropDelegate: DropDelegate {
                     width: max(containerFrame.width - 20, 1),
                     height: lineHeight
                 )
-                print("📐 [SidebarSectionDropDelegate] Calculated insertion frame (global): \(insertionFrame)")
+                Logger.shared.log(
+                    "[SidebarSectionDropDelegate] Calculated insertion frame (global)",
+                    level: .debug,
+                    tags: [.dragDrop, .ui],
+                    metadata: ["frame": "\(insertionFrame)"]
+                )
                 dragManager.updateInsertionLine(frame: insertionFrame)
             } else {
                 let containerWidth: CGFloat = 200 // Fallback sidebar width
@@ -231,7 +264,12 @@ struct SidebarSectionDropDelegate: DropDelegate {
                     width: containerWidth - 20,
                     height: lineHeight
                 )
-                print("📐 [SidebarSectionDropDelegate] Calculated insertion frame (local): \(insertionFrame)")
+                Logger.shared.log(
+                    "[SidebarSectionDropDelegate] Calculated insertion frame (local)",
+                    level: .debug,
+                    tags: [.dragDrop, .ui],
+                    metadata: ["frame": "\(insertionFrame)"]
+                )
                 dragManager.updateInsertionLine(frame: insertionFrame)
             }
         }
@@ -339,10 +377,20 @@ struct SidebarGridDropDelegate: DropDelegate {
         // Calculate and set insertion line frame for grid
         let bounds = boundariesProvider()
         if !bounds.isEmpty, let boundary = bounds.first(where: { $0.index == index }) {
-            print("📐 [SidebarGridDropDelegate] Grid insertion frame: \(boundary.frame)")
+            Logger.shared.log(
+                "[SidebarGridDropDelegate] Grid insertion frame",
+                level: .debug,
+                tags: [.dragDrop, .ui],
+                metadata: ["frame": "\(boundary.frame)"]
+            )
             dragManager.updateInsertionLine(frame: boundary.frame)
         } else {
-            print("📐 [SidebarGridDropDelegate] No boundary found for index \(index)")
+            Logger.shared.log(
+                "[SidebarGridDropDelegate] No boundary found for index",
+                level: .debug,
+                tags: [.dragDrop, .ui],
+                metadata: ["index": "\(index)"]
+            )
             dragManager.updateInsertionLine(frame: .zero)
         }
         
@@ -414,11 +462,25 @@ struct SidebarSectionInsertionOverlay: View {
     let boundaries: [CGFloat]
 
     var body: some View {
-        let _ = print("🟦 [SidebarSectionInsertionOverlay] isActive=\(isActive), index=\(index), boundaries.count=\(boundaries.count)")
+        let _ = Logger.shared.log(
+            "[SidebarSectionInsertionOverlay] Rendering overlay",
+            level: .debug,
+            tags: [.dragDrop, .ui],
+            metadata: [
+                "isActive": "\(isActive)",
+                "index": "\(index)",
+                "boundariesCount": "\(boundaries.count)"
+            ]
+        )
         return GeometryReader { proxy in
             ZStack {
                 if isActive {
-                    let _ = print("🟦 [SidebarSectionInsertionOverlay] Showing blue line at index \(index)")
+                    let _ = Logger.shared.log(
+                        "[SidebarSectionInsertionOverlay] Showing blue line",
+                        level: .debug,
+                        tags: [.dragDrop, .ui],
+                        metadata: ["index": "\(index)"]
+                    )
                     let y: CGFloat = {
                         if !boundaries.isEmpty, index >= 0, index < boundaries.count {
                             return min(max(boundaries[index], 1.5), proxy.size.height - 1.5)
@@ -427,9 +489,14 @@ struct SidebarSectionInsertionOverlay: View {
                             return max(proxy.size.height / 3, 1.5)
                         }
                     }()
-                    
-                    let _ = print("🟦 [SidebarSectionInsertionOverlay] Blue line y-position: \(y)")
-                    
+
+                    let _ = Logger.shared.log(
+                        "[SidebarSectionInsertionOverlay] Blue line y-position",
+                        level: .debug,
+                        tags: [.dragDrop, .ui],
+                        metadata: ["yPosition": "\(y)"]
+                    )
+
                     // Enhanced styling for better visibility
                     RoundedRectangle(cornerRadius: 2)
                         .fill(

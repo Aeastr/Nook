@@ -7,6 +7,7 @@
 
 import SwiftUI
 import AppKit
+import LogOutLoud
 
 // MARK: - Mock Models
 
@@ -93,14 +94,24 @@ class MockTabManager: ObservableObject {
     }
     
     func handleDragOperation(_ operation: DragOperation) {
-#if DEBUG
-        print("🎯 Mock drag operation: \(operation.fromContainer) → \(operation.toContainer) at \(operation.toIndex)")
-#endif
-        
+        Logger.shared.log(
+            "[DragDropPreview] Mock drag operation",
+            level: .info,
+            tags: [.dragDrop],
+            metadata: [
+                "fromContainer": "\(operation.fromContainer)",
+                "toContainer": "\(operation.toContainer)",
+                "toIndex": "\(operation.toIndex)"
+            ]
+        )
+
         guard let mockTab = mockTab(for: operation.tab.id) else {
-#if DEBUG
-            print("❌ Mock tab not found for drag operation: \(operation.tab.id)")
-#endif
+            Logger.shared.log(
+                "[DragDropPreview] Mock tab not found for drag operation",
+                level: .warning,
+                tags: [.dragDrop],
+                metadata: ["tabId": operation.tab.id.uuidString]
+            )
             return
         }
         
@@ -116,9 +127,11 @@ class MockTabManager: ObservableObject {
             reorderRegular(mockTab, in: spaceId, to: operation.toIndex)
             
         default:
-#if DEBUG
-            print("Cross-container moves not implemented in preview")
-#endif
+            Logger.shared.log(
+                "[DragDropPreview] Cross-container moves not implemented in preview",
+                level: .info,
+                tags: [.dragDrop]
+            )
         }
     }
     
@@ -198,11 +211,14 @@ struct MockTabView: View {
                 Spacer()
                 
                 if isHovering {
-                    Button(action: { 
-#if DEBUG
-print("Close \(tab.name)")
-#endif
- }) {
+                    Button(action: {
+                        Logger.shared.log(
+                            "[DragDropPreview] Close tab",
+                            level: .info,
+                            tags: [.tabs],
+                            metadata: ["tabName": tab.name]
+                        )
+                    }) {
                         Image(systemName: "xmark")
                             .font(.system(size: 8, weight: .medium))
                             .foregroundColor(.primary)
@@ -229,27 +245,39 @@ print("Close \(tab.name)")
             }
         }
         .contextMenu {
-            Button("Move Up") { 
-#if DEBUG
-print("Move \(tab.name) up")
-#endif
- }
-            Button("Move Down") { 
-#if DEBUG
-print("Move \(tab.name) down")
-#endif
- }
+            Button("Move Up") {
+                Logger.shared.log(
+                    "[DragDropPreview] Move tab up",
+                    level: .info,
+                    tags: [.tabs],
+                    metadata: ["tabName": tab.name]
+                )
+            }
+            Button("Move Down") {
+                Logger.shared.log(
+                    "[DragDropPreview] Move tab down",
+                    level: .info,
+                    tags: [.tabs],
+                    metadata: ["tabName": tab.name]
+                )
+            }
             Divider()
-            Button("Pin to Space") { 
-#if DEBUG
-print("Pin \(tab.name) to space")
-#endif
- }
-            Button("Pin Globally") { 
-#if DEBUG
-print("Pin \(tab.name) globally")
-#endif
- }
+            Button("Pin to Space") {
+                Logger.shared.log(
+                    "[DragDropPreview] Pin tab to space",
+                    level: .info,
+                    tags: [.tabs],
+                    metadata: ["tabName": tab.name]
+                )
+            }
+            Button("Pin Globally") {
+                Logger.shared.log(
+                    "[DragDropPreview] Pin tab globally",
+                    level: .info,
+                    tags: [.tabs],
+                    metadata: ["tabName": tab.name]
+                )
+            }
         }
     }
 }
@@ -283,11 +311,14 @@ struct MockPinnedTabView: View {
             }
         }
         .contextMenu {
-            Button("Unpin") { 
-#if DEBUG
-print("Unpin \(tab.name)")
-#endif
- }
+            Button("Unpin") {
+                Logger.shared.log(
+                    "[DragDropPreview] Unpin tab",
+                    level: .info,
+                    tags: [.tabs],
+                    metadata: ["tabName": tab.name]
+                )
+            }
         }
     }
 }
@@ -332,9 +363,12 @@ struct DragDropPreview: View {
                             ForEach(tabManager.globalPinnedTabs.indices, id: \.self) { index in
                                 let tab = tabManager.globalPinnedTabs[index]
                                 MockPinnedTabView(tab: tab) {
-#if DEBUG
-                                    print("Activated: \(tab.name)")
-#endif
+                                    Logger.shared.log(
+                                        "[DragDropPreview] Tab activated",
+                                        level: .info,
+                                        tags: [.tabs],
+                                        metadata: ["tabName": tab.name]
+                                    )
                                 }
                                 .onDrag {
                                     dragManager.startDrag(tab: convertToRealTab(tab), from: .essentials, at: index)
@@ -389,11 +423,14 @@ struct DragDropPreview: View {
                                                     handleDrop(providers: providers, toContainer: .spacePinned(currentSpace.id), atIndex: index)
                                                 }
                                             }
-                                            
+
                                             MockTabView(tab: tab) {
-#if DEBUG
-                                                print("Activated: \(tab.name)")
-#endif
+                                                Logger.shared.log(
+                                                    "[DragDropPreview] Tab activated",
+                                                    level: .info,
+                                                    tags: [.tabs],
+                                                    metadata: ["tabName": tab.name]
+                                                )
                                             }
                                             .onDrag {
                                                 dragManager.startDrag(tab: convertToRealTab(tab), from: .spacePinned(currentSpace.id), at: index)
@@ -437,11 +474,14 @@ struct DragDropPreview: View {
                                                         handleDrop(providers: providers, toContainer: .spaceRegular(currentSpace.id), atIndex: index)
                                                     }
                                             }
-                                            
+
                                             MockTabView(tab: tab) {
-#if DEBUG
-                                                print("Activated: \(tab.name)")
-#endif
+                                                Logger.shared.log(
+                                                    "[DragDropPreview] Tab activated",
+                                                    level: .info,
+                                                    tags: [.tabs],
+                                                    metadata: ["tabName": tab.name]
+                                                )
                                             }
                                             .onDrag {
                                                 dragManager.startDrag(tab: convertToRealTab(tab), from: .spaceRegular(currentSpace.id), at: index)
@@ -491,9 +531,16 @@ struct DragDropPreview: View {
     }
     
     private func handleDragCompleted(_ operation: DragOperation) {
-#if DEBUG
-        print("🎯 Drag completed: \(operation)")
-#endif
+        Logger.shared.log(
+            "[DragDropPreview] Drag completed",
+            level: .info,
+            tags: [.dragDrop],
+            metadata: [
+                "fromContainer": "\(operation.fromContainer)",
+                "toContainer": "\(operation.toContainer)",
+                "toIndex": "\(operation.toIndex)"
+            ]
+        )
         tabManager.handleDragOperation(operation)
     }
     
@@ -510,22 +557,33 @@ struct DragDropPreview: View {
     }
     
     private func handleDrop(providers: [NSItemProvider], toContainer: TabDragManager.DragContainer, atIndex: Int) -> Bool {
-#if DEBUG
-        print("🎯 Drop attempted: container=\(toContainer), index=\(atIndex)")
-#endif
-        
+        Logger.shared.log(
+            "[DragDropPreview] Drop attempted",
+            level: .info,
+            tags: [.dragDrop],
+            metadata: [
+                "container": "\(toContainer)",
+                "index": "\(atIndex)"
+            ]
+        )
+
         guard let draggedTab = dragManager.draggedTab else {
-#if DEBUG
-            print("❌ No dragged tab found")
-#endif
+            Logger.shared.log(
+                "[DragDropPreview] No dragged tab found",
+                level: .warning,
+                tags: [.dragDrop]
+            )
             return false
         }
-        
+
         // Find the mock tab to move
         guard let mockTab = findMockTab(by: draggedTab.id) else {
-#if DEBUG
-            print("❌ Could not find mock tab with ID: \(draggedTab.id)")
-#endif
+            Logger.shared.log(
+                "[DragDropPreview] Could not find mock tab",
+                level: .warning,
+                tags: [.dragDrop],
+                metadata: ["tabId": draggedTab.id.uuidString]
+            )
             return false
         }
         
@@ -537,10 +595,17 @@ struct DragDropPreview: View {
         
         // End the drag
         _ = dragManager.endDrag(commit: true)
-        
-#if DEBUG
-        print("✅ Successfully moved \(mockTab.name) to \(toContainer) at index \(atIndex)")
-#endif
+
+        Logger.shared.log(
+            "[DragDropPreview] Successfully moved tab",
+            level: .info,
+            tags: [.dragDrop],
+            metadata: [
+                "tabName": mockTab.name,
+                "toContainer": "\(toContainer)",
+                "atIndex": "\(atIndex)"
+            ]
+        )
         return true
     }
     
@@ -606,9 +671,11 @@ struct DragDropPreview: View {
             tab.spaceId = spaceId
             
         case .none:
-#if DEBUG
-            print("❌ Invalid drop container")
-#endif
+            Logger.shared.log(
+                "[DragDropPreview] Invalid drop container",
+                level: .warning,
+                tags: [.dragDrop]
+            )
         case .folder(_):
             // Handle folder drop container
             break
