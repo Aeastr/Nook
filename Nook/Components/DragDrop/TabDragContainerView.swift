@@ -7,6 +7,7 @@
 
 import SwiftUI
 import AppKit
+import LogOutLoud
 
 struct TabDragContainerView<Content: View>: NSViewRepresentable {
     let content: Content
@@ -152,7 +153,12 @@ class TabDragNSView: NSView {
         // UI components know their own geometry and handle insertion line positioning
         Task { @MainActor in
             // Simple fallback - let the specialized components handle precise positioning
-            print("🎯 [TabDragContainerView] Drag at \(location) - letting specialized components handle targeting")
+            Logger.shared.log(
+                "[TabDragContainerView] Drag at location - letting specialized components handle targeting",
+                level: .debug,
+                tags: [.dragDrop],
+                metadata: ["location": "\(location)"]
+            )
         }
     }
     

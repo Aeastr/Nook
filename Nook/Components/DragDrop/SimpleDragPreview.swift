@@ -8,6 +8,7 @@
 import SwiftUI
 import UniformTypeIdentifiers
 import Foundation
+import LogOutLoud
 #if canImport(AppKit)
 import AppKit
 #endif
@@ -79,9 +80,12 @@ struct SimpleDragPreview: View {
                             .matchedGeometryEffect(id: "ess_\(tab)", in: reorderNS)
                             .contentShape(RoundedRectangle(cornerRadius: 12))
                             .onDrag {
-#if DEBUG
-                                print("🚀 Starting drag: \(tab) from Essential")
-#endif
+                                Logger.shared.log(
+                                    "[SimpleDragPreview] Starting drag from Essential",
+                                    level: .debug,
+                                    tags: [.dragDrop, .tabs],
+                                    metadata: ["tabName": tab]
+                                )
                                 targetedSection = nil
                                 targetedIndex = nil
                                 draggedItem = tab
@@ -154,9 +158,12 @@ struct SimpleDragPreview: View {
                             TabRowView(name: tab, isDragged: draggedItem == tab)
                                 .matchedGeometryEffect(id: "sp_\(tab)", in: reorderNS)
                                 .onDrag {
-#if DEBUG
-                                    print("🚀 Starting drag: \(tab) from Space Pinned")
-#endif
+                                    Logger.shared.log(
+                                        "[SimpleDragPreview] Starting drag from Space Pinned",
+                                        level: .debug,
+                                        tags: [.dragDrop, .tabs],
+                                        metadata: ["tabName": tab]
+                                    )
                                     targetedSection = nil
                                     targetedIndex = nil
                                     draggedItem = tab
@@ -221,9 +228,12 @@ struct SimpleDragPreview: View {
                             TabRowView(name: tab, isDragged: draggedItem == tab)
                                 .matchedGeometryEffect(id: "reg_\(tab)", in: reorderNS)
                                 .onDrag {
-#if DEBUG
-                                    print("🚀 Starting drag: \(tab) from Regular")
-#endif
+                                    Logger.shared.log(
+                                        "[SimpleDragPreview] Starting drag from Regular",
+                                        level: .debug,
+                                        tags: [.dragDrop, .tabs],
+                                        metadata: ["tabName": tab]
+                                    )
                                     targetedSection = nil
                                     targetedIndex = nil
                                     draggedItem = tab
@@ -510,22 +520,40 @@ struct SimpleDragPreview: View {
     }
     
     private func handleDrop(providers: [NSItemProvider], to section: DragSection, atIndex: Int) -> Bool {
-#if DEBUG
-        print("🎯 Drop attempted - Item: \(draggedItem ?? "nil"), From: \(dragSourceSection?.description ?? "nil"), To: \(section.description) at index \(atIndex)")
-#endif
-        
+        Logger.shared.log(
+            "[SimpleDragPreview] Drop attempted",
+            level: .info,
+            tags: [.dragDrop],
+            metadata: [
+                "item": draggedItem ?? "nil",
+                "fromSection": dragSourceSection?.description ?? "nil",
+                "toSection": section.description,
+                "atIndex": "\(atIndex)"
+            ]
+        )
+
         guard let draggedItem = draggedItem,
-              let dragSourceSection = dragSourceSection else { 
-#if DEBUG
-            print("❌ Drop failed - missing drag state")
-#endif
+              let dragSourceSection = dragSourceSection else {
+            Logger.shared.log(
+                "[SimpleDragPreview] Drop failed - missing drag state",
+                level: .warning,
+                tags: [.dragDrop]
+            )
             resetDragState()
-            return false 
+            return false
         }
-        
-#if DEBUG
-        print("✅ Moving \(draggedItem) from \(dragSourceSection.description) to \(section.description) at index \(atIndex)")
-#endif
+
+        Logger.shared.log(
+            "[SimpleDragPreview] Moving tab",
+            level: .info,
+            tags: [.dragDrop],
+            metadata: [
+                "tabName": draggedItem,
+                "fromSection": dragSourceSection.description,
+                "toSection": section.description,
+                "atIndex": "\(atIndex)"
+            ]
+        )
         
         // Perform move immediately with tighter spring for crisper reorder
         withAnimation(.spring(response: 0.20, dampingFraction: 0.90, blendDuration: 0.1)) {
@@ -558,9 +586,11 @@ struct SimpleDragPreview: View {
     }
     
     private func resetDragState() {
-#if DEBUG
-        print("🔄 Resetting drag state")
-#endif
+        Logger.shared.log(
+            "[SimpleDragPreview] Resetting drag state",
+            level: .debug,
+            tags: [.dragDrop]
+        )
         draggedItem = nil
         dragSourceSection = nil
         targetedSection = nil
@@ -571,13 +601,16 @@ struct SimpleDragPreview: View {
 struct TabSquareView: View {
     let name: String
     let isDragged: Bool
-    
+
     var body: some View {
-        Button(action: { 
-#if DEBUG
-print("Activated: \(name)")
-#endif
- }) {
+        Button(action: {
+            Logger.shared.log(
+                "[SimpleDragPreview] Tab activated",
+                level: .info,
+                tags: [.tabs],
+                metadata: ["tabName": name]
+            )
+        }) {
             ZStack {
                 RoundedRectangle(cornerRadius: 12)
                     .fill(Color.gray.opacity(0.2))
@@ -600,13 +633,16 @@ struct TabRowView: View {
     let name: String
     let isDragged: Bool
     @State private var isHovering = false
-    
+
     var body: some View {
-        Button(action: { 
-#if DEBUG
-print("Activated: \(name)")
-#endif
- }) {
+        Button(action: {
+            Logger.shared.log(
+                "[SimpleDragPreview] Tab activated",
+                level: .info,
+                tags: [.tabs],
+                metadata: ["tabName": name]
+            )
+        }) {
             HStack(spacing: 8) {
                 Text(String(name.prefix(1)))
                     .font(.caption)
@@ -622,11 +658,14 @@ print("Activated: \(name)")
                 Spacer()
                 
                 if isHovering {
-                    Button(action: { 
-#if DEBUG
-print("Close \(name)")
-#endif
- }) {
+                    Button(action: {
+                        Logger.shared.log(
+                            "[SimpleDragPreview] Close tab",
+                            level: .info,
+                            tags: [.tabs],
+                            metadata: ["tabName": name]
+                        )
+                    }) {
                         Image(systemName: "xmark")
                             .font(.system(size: 8, weight: .medium))
                             .foregroundColor(.primary)

@@ -8,6 +8,7 @@
 import SwiftUI
 import WebKit
 import AppKit
+import LogOutLoud
 
 @available(macOS 15.5, *)
 struct ExtensionActionView: View {
@@ -52,14 +53,29 @@ struct ExtensionActionButton: View {
     }
     
     private func showExtensionPopup() {
-        print("🎯 Performing action for extension: \(ext.name)")
-        
+        Logger.shared.log(
+            "Performing action for extension",
+            level: .info,
+            tags: [.extensions],
+            metadata: ["extension": ext.name]
+        )
+
         guard let extensionContext = ExtensionManager.shared.getExtensionContext(for: ext.id) else {
-            print("❌ No extension context found")
+            Logger.shared.log(
+                "No extension context found",
+                level: .error,
+                tags: [.extensions],
+                metadata: ["extension": ext.name]
+            )
             return
         }
-        
-        print("✅ Calling performAction() - this should trigger the delegate")
+
+        Logger.shared.log(
+            "Calling performAction",
+            level: .debug,
+            tags: [.extensions],
+            metadata: ["extension": ext.name]
+        )
         if let current = browserManager.currentTab(for: windowState) {
             if let adapter = ExtensionManager.shared.stableAdapter(for: current) {
                 extensionContext.performAction(for: adapter)

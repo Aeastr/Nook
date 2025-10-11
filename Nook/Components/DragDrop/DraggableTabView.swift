@@ -7,6 +7,7 @@
 
 import SwiftUI
 import AppKit
+import LogOutLoud
 
 struct DraggableTabView<Content: View>: View {
     let tab: Tab
@@ -44,7 +45,16 @@ struct DraggableTabView<Content: View>: View {
             .onDrag {
                 // Pre-emptively acquire drag lock BEFORE anything else
                 guard dragLockManager.startDrag(ownerID: dragSessionID) else {
-                    print("🚫 [DraggableTabView] Tab drag blocked at onset - \(dragLockManager.debugInfo)")
+                    Logger.shared.log(
+                        "[DraggableTabView] Tab drag blocked at onset",
+                        level: .debug,
+                        tags: [.dragLock, .dragDrop],
+                        metadata: [
+                            "tabName": tab.name,
+                            "tabId": tab.id.uuidString,
+                            "debugInfo": dragLockManager.debugInfo
+                        ]
+                    )
                     return NSItemProvider(object: tab.id.uuidString as NSString)
                 }
 
@@ -65,7 +75,16 @@ struct DraggableTabView<Content: View>: View {
                         if !dragGesture {
                             // Pre-emptively acquire drag lock for gesture-based drag
                             guard dragLockManager.startDrag(ownerID: dragSessionID) else {
-                                print("🚫 [DraggableTabView] Gesture drag blocked at onset - \(dragLockManager.debugInfo)")
+                                Logger.shared.log(
+                                    "[DraggableTabView] Gesture drag blocked at onset",
+                                    level: .debug,
+                                    tags: [.dragLock, .dragDrop],
+                                    metadata: [
+                                        "tabName": tab.name,
+                                        "tabId": tab.id.uuidString,
+                                        "debugInfo": dragLockManager.debugInfo
+                                    ]
+                                )
                                 return
                             }
 
