@@ -8,6 +8,7 @@
 import SwiftUI
 import WebKit
 import AppKit
+import LogOutLoud
 
 // MARK: - Status Bar View
 struct LinkStatusBar: View {
@@ -378,7 +379,12 @@ struct TabCompositorWrapper: NSViewRepresentable {
             DispatchQueue.main.async {
                 self.hoveredLink = href
                 if let href = href {
-                    print("Hovering over link: \(href)")
+                    Logger.shared.log(
+                        "Hovering over link",
+                        level: .debug,
+                        tags: [.webView, .navigation],
+                        metadata: ["href": href]
+                    )
                 }
             }
         }
@@ -513,7 +519,12 @@ struct TabWebViewWrapper: NSViewRepresentable {
             DispatchQueue.main.async {
                 self.hoveredLink = href
                 if let href = href {
-                    print("Hovering over link: \(href)")
+                    Logger.shared.log(
+                        "Hovering over link",
+                        level: .debug,
+                        tags: [.webView, .navigation],
+                        metadata: ["href": href]
+                    )
                 }
             }
         }
@@ -525,7 +536,12 @@ struct TabWebViewWrapper: NSViewRepresentable {
             }
         }
         
-        print("Showing WebView for tab: \(tab.name)")
+        Logger.shared.log(
+            "Showing WebView for tab",
+            level: .debug,
+            tags: [.tabs, .webView],
+            metadata: ["tab": tab.name]
+        )
         return tab.activeWebView
     }
 

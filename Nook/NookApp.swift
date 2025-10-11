@@ -11,11 +11,25 @@ import OSLog
 import AppKit
 import Carbon
 import Sparkle
+import LogOutLoud
 
 @main
 struct NookApp: App {
     @StateObject private var browserManager = BrowserManager()
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+
+    init() {
+        // Configure LogOutLoud
+        Logger.shared.subsystem = Bundle.main.bundleIdentifier ?? "com.nook.browser"
+
+        #if DEBUG
+        // In debug builds, log everything
+        Logger.shared.setAllowedLevels(Set(LogLevel.allCases))
+        #else
+        // In release builds, only log warnings and above
+        Logger.shared.setAllowedLevels([.warning, .error, .fault])
+        #endif
+    }
 
     var body: some Scene {
         WindowGroup {

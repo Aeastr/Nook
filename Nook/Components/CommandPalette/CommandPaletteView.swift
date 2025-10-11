@@ -7,6 +7,7 @@
 
 import AppKit
 import SwiftUI
+import LogOutLoud
 
 struct CommandPaletteView: View {
     @EnvironmentObject var browserManager: BrowserManager
@@ -340,7 +341,12 @@ struct CommandPaletteView: View {
         case .tab(let existingTab):
             // Switch to existing tab in this window
             browserManager.selectTab(existingTab, in: windowState)
-            print("Switched to existing tab: \(existingTab.name)")
+            Logger.shared.log(
+                "Switched to existing tab",
+                level: .info,
+                tags: [.commandPalette, .tabs],
+                metadata: ["tab": existingTab.name]
+            )
         case .history(let historyEntry):
             if windowState.shouldNavigateCurrentTab
                 && browserManager.currentTab(for: windowState) != nil
@@ -349,8 +355,11 @@ struct CommandPaletteView: View {
                 browserManager.currentTab(for: windowState)?.loadURL(
                     historyEntry.url.absoluteString
                 )
-                print(
-                    "Navigated current tab to history URL: \(historyEntry.url)"
+                Logger.shared.log(
+                    "Navigated current tab to history URL",
+                    level: .info,
+                    tags: [.commandPalette, .navigation],
+                    metadata: ["url": historyEntry.url.absoluteString]
                 )
             } else {
                 // Create new tab from history entry
@@ -358,8 +367,11 @@ struct CommandPaletteView: View {
                 browserManager.currentTab(for: windowState)?.loadURL(
                     historyEntry.url.absoluteString
                 )
-                print(
-                    "Created new tab from history in window \(windowState.id)"
+                Logger.shared.log(
+                    "Created new tab from history",
+                    level: .info,
+                    tags: [.commandPalette, .tabs],
+                    metadata: ["windowId": windowState.id.uuidString, "url": historyEntry.url.absoluteString]
                 )
             }
         case .url, .search:
@@ -370,14 +382,24 @@ struct CommandPaletteView: View {
                 browserManager.currentTab(for: windowState)?.navigateToURL(
                     suggestion.text
                 )
-                print("Navigated current tab to: \(suggestion.text)")
+                Logger.shared.log(
+                    "Navigated current tab",
+                    level: .info,
+                    tags: [.commandPalette, .navigation],
+                    metadata: ["destination": suggestion.text]
+                )
             } else {
                 // Create new tab
                 browserManager.createNewTab(in: windowState)
                 browserManager.currentTab(for: windowState)?.navigateToURL(
                     suggestion.text
                 )
-                print("Created new tab in window \(windowState.id)")
+                Logger.shared.log(
+                    "Created new tab",
+                    level: .info,
+                    tags: [.commandPalette, .tabs],
+                    metadata: ["windowId": windowState.id.uuidString, "destination": suggestion.text]
+                )
             }
         }
 

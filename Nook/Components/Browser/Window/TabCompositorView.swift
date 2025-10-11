@@ -1,6 +1,7 @@
 import SwiftUI
 import AppKit
 import WebKit
+import LogOutLoud
 
 struct TabCompositorView: NSViewRepresentable {
     let browserManager: BrowserManager
@@ -89,7 +90,12 @@ class TabCompositorManager: ObservableObject {
     }
     
     func unloadTab(_ tab: Tab) {
-        print("🔄 [Compositor] Unloading tab: \(tab.name)")
+        Logger.shared.log(
+            "Unloading tab",
+            level: .debug,
+            tags: [.tabCompositor, .tabs],
+            metadata: ["tab": tab.name]
+        )
         
         // Stop any existing timer
         unloadTimers[tab.id]?.invalidate()
@@ -101,7 +107,12 @@ class TabCompositorManager: ObservableObject {
     }
     
     func loadTab(_ tab: Tab) {
-        print("🔄 [Compositor] Loading tab: \(tab.name)")
+        Logger.shared.log(
+            "Loading tab",
+            level: .debug,
+            tags: [.tabCompositor, .tabs],
+            metadata: ["tab": tab.name]
+        )
         
         // Mark as accessed
         markTabAccessed(tab.id)

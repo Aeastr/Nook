@@ -7,6 +7,7 @@
 
 import SwiftUI
 import WebKit
+import LogOutLoud
 
 struct MiniWindowWebView: NSViewRepresentable {
     @ObservedObject var session: MiniWindowSession
@@ -66,7 +67,12 @@ struct MiniWindowWebView: NSViewRepresentable {
             webView.evaluateJavaScript(WKWebView.themeColorExtractionScript) { [weak self] result, error in
                 guard let self else { return }
                 if let error {
-                    print("🎨 [MiniWindow] Failed to evaluate theme color script: \(error.localizedDescription)")
+                    Logger.shared.log(
+                        "Failed to evaluate theme color script",
+                        level: .warning,
+                        tags: [.webContent, .miniWindow],
+                        metadata: ["error": error.localizedDescription]
+                    )
                 }
 
                 var hexString = (result as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -154,7 +160,12 @@ struct MiniWindowWebView: NSViewRepresentable {
             guard didLoadInitialURL == false else { return }
             didLoadInitialURL = true
             let request = URLRequest(url: session.currentURL)
-            print("🔐 [MiniWindow] Loading URL: \(session.currentURL.absoluteString)")
+            Logger.shared.log(
+                "Loading URL",
+                level: .info,
+                tags: [.oauth, .miniWindow, .auth],
+                metadata: ["url": session.currentURL.absoluteString]
+            )
             webView.load(request)
         }
         
@@ -182,32 +193,47 @@ struct MiniWindowWebView: NSViewRepresentable {
             ]
             
             // Check for success in URL, query, or fragment
-            if successIndicators.contains(where: { 
-                urlString.contains($0) || query.contains($0) || fragment.contains($0) 
+            if successIndicators.contains(where: {
+                urlString.contains($0) || query.contains($0) || fragment.contains($0)
             }) {
-                print("🔐 [MiniWindow] OAuth success detected: \(url.absoluteString)")
+                Logger.shared.log(
+                    "OAuth success detected",
+                    level: .info,
+                    tags: [.oauth, .miniWindow, .auth],
+                    metadata: ["url": url.absoluteString]
+                )
                 session.completeAuth(success: true, finalURL: url)
                 return
             }
             
             // Check for error in URL, query, or fragment
-            if errorIndicators.contains(where: { 
-                urlString.contains($0) || query.contains($0) || fragment.contains($0) 
+            if errorIndicators.contains(where: {
+                urlString.contains($0) || query.contains($0) || fragment.contains($0)
             }) {
-                print("🔐 [MiniWindow] OAuth error detected: \(url.absoluteString)")
+                Logger.shared.log(
+                    "OAuth error detected",
+                    level: .info,
+                    tags: [.oauth, .miniWindow, .auth],
+                    metadata: ["url": url.absoluteString]
+                )
                 session.completeAuth(success: false, finalURL: url)
                 return
             }
             
             // Check for redirect back to original domain (common OAuth pattern)
             if let host = url.host?.lowercased(),
-               !host.contains("google.com") && !host.contains("microsoft.com") && 
+               !host.contains("google.com") && !host.contains("microsoft.com") &&
                !host.contains("apple.com") && !host.contains("github.com") &&
                !host.contains("auth0.com") && !host.contains("okta.com") &&
                !host.contains("facebook.com") && !host.contains("twitter.com") &&
                !host.contains("discord.com") {
                 // This might be a redirect back to the original app
-                print("🔐 [MiniWindow] Possible OAuth redirect detected: \(url.absoluteString)")
+                Logger.shared.log(
+                    "Possible OAuth redirect detected",
+                    level: .info,
+                    tags: [.oauth, .miniWindow, .auth],
+                    metadata: ["url": url.absoluteString]
+                )
                 session.completeAuth(success: true, finalURL: url)
             }
         }
@@ -220,16 +246,29 @@ struct MiniWindowWebView: NSViewRepresentable {
             let success = body["success"] as? Bool ?? false
             let shouldClose = body["shouldClose"] as? Bool ?? false
             let urlString = body["url"] as? String
-            
-            print("🔐 [MiniWindow] JavaScript auth completion detected: success=\(success), shouldClose=\(shouldClose), url=\(urlString ?? "nil")")
-            
+
+            Logger.shared.log(
+                "JavaScript auth completion detected",
+                level: .info,
+                tags: [.oauth, .miniWindow, .auth],
+                metadata: [
+                    "success": success,
+                    "shouldClose": shouldClose,
+                    "url": urlString ?? "nil"
+                ]
+            )
+
             let finalURL = urlString.flatMap { URL(string: $0) }
             session.completeAuth(success: success, finalURL: finalURL)
-            
+
             // If the site expects the window to close, we could close it automatically
             // but for now, let's let the user decide when to close/adopt the window
             if shouldClose {
-                print("🔐 [MiniWindow] Site requested window close, but keeping window open for user control")
+                Logger.shared.log(
+                    "Site requested window close, but keeping window open for user control",
+                    level: .info,
+                    tags: [.oauth, .miniWindow, .auth]
+                )
             }
         }
     }
@@ -239,7 +278,12 @@ struct MiniWindowWebView: NSViewRepresentable {
 @MainActor
 extension MiniWindowWebView.Coordinator: WKNavigationDelegate {
     func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
-        print("🔐 [MiniWindow] Navigation started: \(webView.url?.absoluteString ?? "nil")")
+        Logger.shared.log(
+            "Navigation started",
+            level: .info,
+            tags: [.navigation, .miniWindow],
+            metadata: ["url": webView.url?.absoluteString ?? "nil"]
+        )
         session.updateLoading(isLoading: true)
         session.updateNavigationState(url: webView.url, title: nil)
         session.updateToolbarColor(hexString: nil)
@@ -250,7 +294,12 @@ extension MiniWindowWebView.Coordinator: WKNavigationDelegate {
     }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        print("🔐 [MiniWindow] Navigation finished: \(webView.url?.absoluteString ?? "nil")")
+        Logger.shared.log(
+            "Navigation finished",
+            level: .info,
+            tags: [.navigation, .miniWindow],
+            metadata: ["url": webView.url?.absoluteString ?? "nil"]
+        )
         session.updateLoading(isLoading: false)
         session.updateNavigationState(url: webView.url, title: nil)
         
@@ -272,12 +321,22 @@ extension MiniWindowWebView.Coordinator: WKNavigationDelegate {
     }
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
-        print("🔐 [MiniWindow] Navigation failed: \(error.localizedDescription)")
+        Logger.shared.log(
+            "Navigation failed",
+            level: .error,
+            tags: [.navigation, .miniWindow],
+            metadata: ["error": error.localizedDescription]
+        )
         session.updateLoading(isLoading: false)
     }
 
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
-        print("🔐 [MiniWindow] Provisional navigation failed: \(error.localizedDescription)")
+        Logger.shared.log(
+            "Provisional navigation failed",
+            level: .error,
+            tags: [.navigation, .miniWindow],
+            metadata: ["error": error.localizedDescription]
+        )
         session.updateLoading(isLoading: false)
     }
 }
@@ -303,11 +362,19 @@ extension MiniWindowWebView.Coordinator: WKUIDelegate {
         _ webView: WKWebView,
         enterFullScreenForVideoWith completionHandler: @escaping (Bool, Error?) -> Void
     ) {
-        print("🎬 [MiniWindowWebView] Entering full-screen for video")
-        
+        Logger.shared.log(
+            "Entering full-screen for video",
+            level: .info,
+            tags: [.fullscreen, .video, .miniWindow]
+        )
+
         // Get the window containing this webView
         guard let window = webView.window else {
-            print("❌ [MiniWindowWebView] No window found for full-screen")
+            Logger.shared.log(
+                "No window found for full-screen",
+                level: .error,
+                tags: [.fullscreen, .video, .miniWindow]
+            )
             completionHandler(false, NSError(domain: "MiniWindowWebView", code: -1, userInfo: [NSLocalizedDescriptionKey: "No window available for full-screen"]))
             return
         }
@@ -324,11 +391,19 @@ extension MiniWindowWebView.Coordinator: WKUIDelegate {
         _ webView: WKWebView,
         exitFullScreenWith completionHandler: @escaping (Bool, Error?) -> Void
     ) {
-        print("🎬 [MiniWindowWebView] Exiting full-screen for video")
-        
+        Logger.shared.log(
+            "Exiting full-screen for video",
+            level: .info,
+            tags: [.fullscreen, .video, .miniWindow]
+        )
+
         // Get the window containing this webView
         guard let window = webView.window else {
-            print("❌ [MiniWindowWebView] No window found for exiting full-screen")
+            Logger.shared.log(
+                "No window found for exiting full-screen",
+                level: .error,
+                tags: [.fullscreen, .video, .miniWindow]
+            )
             completionHandler(false, NSError(domain: "MiniWindowWebView", code: -1, userInfo: [NSLocalizedDescriptionKey: "No window available for exiting full-screen"]))
             return
         }
@@ -363,24 +438,52 @@ extension MiniWindowWebView.Coordinator: WKUIDelegate {
             if let window = webView.window {
                 // Present as sheet if we have a window
                 openPanel.beginSheetModal(for: window) { response in
-                    print("📁 [MiniWindowWebView] Open panel sheet completed with response: \(response)")
+                    Logger.shared.log(
+                        "Open panel sheet completed",
+                        level: .debug,
+                        tags: [.fileSelection, .miniWindow],
+                        metadata: ["response": String(describing: response)]
+                    )
                     if response == .OK {
-                        print("📁 [MiniWindowWebView] User selected files: \(openPanel.urls.map { $0.lastPathComponent })")
+                        Logger.shared.log(
+                            "User selected files",
+                            level: .info,
+                            tags: [.fileSelection, .miniWindow],
+                            metadata: ["files": openPanel.urls.map { $0.lastPathComponent }]
+                        )
                         completionHandler(openPanel.urls)
                     } else {
-                        print("📁 [MiniWindowWebView] User cancelled file selection")
+                        Logger.shared.log(
+                            "User cancelled file selection",
+                            level: .debug,
+                            tags: [.fileSelection, .miniWindow]
+                        )
                         completionHandler(nil)
                     }
                 }
             } else {
                 // Fall back to modal presentation
                 openPanel.begin { response in
-                    print("📁 [MiniWindowWebView] Open panel modal completed with response: \(response)")
+                    Logger.shared.log(
+                        "Open panel modal completed",
+                        level: .debug,
+                        tags: [.fileSelection, .miniWindow],
+                        metadata: ["response": String(describing: response)]
+                    )
                     if response == .OK {
-                        print("📁 [MiniWindowWebView] User selected files: \(openPanel.urls.map { $0.lastPathComponent })")
+                        Logger.shared.log(
+                            "User selected files",
+                            level: .info,
+                            tags: [.fileSelection, .miniWindow],
+                            metadata: ["files": openPanel.urls.map { $0.lastPathComponent }]
+                        )
                         completionHandler(openPanel.urls)
                     } else {
-                        print("📁 [MiniWindowWebView] User cancelled file selection")
+                        Logger.shared.log(
+                            "User cancelled file selection",
+                            level: .debug,
+                            tags: [.fileSelection, .miniWindow]
+                        )
                         completionHandler(nil)
                     }
                 }

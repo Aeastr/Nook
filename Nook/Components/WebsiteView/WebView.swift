@@ -1,5 +1,6 @@
 import SwiftUI
 import WebKit
+import LogOutLoud
 
 struct WebView: NSViewRepresentable {
     let urlString: String
@@ -70,18 +71,33 @@ extension WebView.Coordinator: WKNavigationDelegate {
         _ webView: WKWebView,
         didStartProvisionalNavigation navigation: WKNavigation!
     ) {
-        print("Started loading: \(webView.url?.absoluteString ?? "")")
+        Logger.shared.log(
+            "Started loading",
+            level: .debug,
+            tags: [.navigation, .webView],
+            metadata: ["url": webView.url?.absoluteString ?? ""]
+        )
         if let url = webView.url?.absoluteString {
             onURLChange?(url)
         }
     }
 
     func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
-        print("Content started loading: \(webView.url?.absoluteString ?? "")")
+        Logger.shared.log(
+            "Content started loading",
+            level: .debug,
+            tags: [.navigation, .webView],
+            metadata: ["url": webView.url?.absoluteString ?? ""]
+        )
     }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        print("Finished loading: \(webView.url?.absoluteString ?? "")")
+        Logger.shared.log(
+            "Finished loading",
+            level: .info,
+            tags: [.navigation, .webView],
+            metadata: ["url": webView.url?.absoluteString ?? ""]
+        )
 
         webView.evaluateJavaScript("document.title") {
             [weak self] result, error in
@@ -102,7 +118,12 @@ extension WebView.Coordinator: WKNavigationDelegate {
         didFail navigation: WKNavigation!,
         withError error: Error
     ) {
-        print("Navigation failed: \(error.localizedDescription)")
+        Logger.shared.log(
+            "Navigation failed",
+            level: .error,
+            tags: [.navigation, .webView],
+            metadata: ["error": error.localizedDescription, "url": webView.url?.absoluteString ?? ""]
+        )
     }
 
     func webView(
@@ -110,7 +131,12 @@ extension WebView.Coordinator: WKNavigationDelegate {
         didFailProvisionalNavigation navigation: WKNavigation!,
         withError error: Error
     ) {
-        print("Provisional navigation failed: \(error.localizedDescription)")
+        Logger.shared.log(
+            "Provisional navigation failed",
+            level: .error,
+            tags: [.navigation, .webView],
+            metadata: ["error": error.localizedDescription, "url": webView.url?.absoluteString ?? ""]
+        )
     }
 
     func webView(
@@ -206,11 +232,19 @@ extension WebView.Coordinator: WKUIDelegate {
         _ webView: WKWebView,
         enterFullScreenForVideoWith completionHandler: @escaping (Bool, Error?) -> Void
     ) {
-        print("🎬 [WebView] Entering full-screen for video")
-        
+        Logger.shared.log(
+            "Entering full-screen for video",
+            level: .info,
+            tags: [.fullscreen, .video, .webView]
+        )
+
         // Get the window containing this webView
         guard let window = webView.window else {
-            print("❌ [WebView] No window found for full-screen")
+            Logger.shared.log(
+                "No window found for full-screen",
+                level: .error,
+                tags: [.fullscreen, .webView]
+            )
             completionHandler(false, NSError(domain: "WebView", code: -1, userInfo: [NSLocalizedDescriptionKey: "No window available for full-screen"]))
             return
         }
@@ -263,24 +297,52 @@ extension WebView.Coordinator: WKUIDelegate {
             if let window = webView.window {
                 // Present as sheet if we have a window
                 openPanel.beginSheetModal(for: window) { response in
-                    print("📁 [WebView] Open panel sheet completed with response: \(response)")
+                    Logger.shared.log(
+                        "Open panel sheet completed",
+                        level: .debug,
+                        tags: [.fileSelection, .webView],
+                        metadata: ["response": "\(response.rawValue)"]
+                    )
                     if response == .OK {
-                        print("📁 [WebView] User selected files: \(openPanel.urls.map { $0.lastPathComponent })")
+                        Logger.shared.log(
+                            "User selected files",
+                            level: .info,
+                            tags: [.fileSelection, .webView],
+                            metadata: ["files": openPanel.urls.map { $0.lastPathComponent }.joined(separator: ", ")]
+                        )
                         completionHandler(openPanel.urls)
                     } else {
-                        print("📁 [WebView] User cancelled file selection")
+                        Logger.shared.log(
+                            "User cancelled file selection",
+                            level: .debug,
+                            tags: [.fileSelection, .webView]
+                        )
                         completionHandler(nil)
                     }
                 }
             } else {
                 // Fall back to modal presentation
                 openPanel.begin { response in
-                    print("📁 [WebView] Open panel modal completed with response: \(response)")
+                    Logger.shared.log(
+                        "Open panel modal completed",
+                        level: .debug,
+                        tags: [.fileSelection, .webView],
+                        metadata: ["response": "\(response.rawValue)"]
+                    )
                     if response == .OK {
-                        print("📁 [WebView] User selected files: \(openPanel.urls.map { $0.lastPathComponent })")
+                        Logger.shared.log(
+                            "User selected files",
+                            level: .info,
+                            tags: [.fileSelection, .webView],
+                            metadata: ["files": openPanel.urls.map { $0.lastPathComponent }.joined(separator: ", ")]
+                        )
                         completionHandler(openPanel.urls)
                     } else {
-                        print("📁 [WebView] User cancelled file selection")
+                        Logger.shared.log(
+                            "User cancelled file selection",
+                            level: .debug,
+                            tags: [.fileSelection, .webView]
+                        )
                         completionHandler(nil)
                     }
                 }
