@@ -93,7 +93,7 @@ struct SpaceView: View {
 
     private var folders: [TabFolder] {
         let folders = browserManager.tabManager.folders(for: space.id)
-//        print("🔄 SpaceView.folders recomputed: \(folders.count) folders")
+        print("🔄 SpaceView.folders recomputed: \(folders.count) folders")
         return folders
     }
 

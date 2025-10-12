@@ -1722,7 +1722,7 @@ class TabManager {
     func spacePinnedTabs(for spaceId: UUID) -> [Tab] {
         // Create a copy of the array before sorting to prevent race conditions
         let tabs = Array(spacePinnedTabs[spaceId] ?? []).sorted { $0.index < $1.index }
-//        print("📌 spacePinnedTabs(for: \(spaceId.uuidString.prefix(8))...) returning \(tabs.count) tabs:")
+        print("📌 spacePinnedTabs(for: \(spaceId.uuidString.prefix(8))...) returning \(tabs.count) tabs:")
         for tab in tabs {
             print("   - \(tab.name) (id: \(tab.id.uuidString.prefix(8))..., folderId: \(tab.folderId?.uuidString.prefix(8) ?? "nil"))")
         }

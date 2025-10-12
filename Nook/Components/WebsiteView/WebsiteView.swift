@@ -239,9 +239,6 @@ struct TabCompositorWrapper: NSViewRepresentable {
             context.coordinator.lastSize != size ||
             context.coordinator.lastVersion != compositorVersion
 
-        // Check if tab changed BEFORE updating lastCurrentId
-        let tabChanged = currentId != context.coordinator.lastCurrentId
-
         if needsRebuild {
             updateCompositor(nsView)
             context.coordinator.lastIsSplit = isSplit
@@ -252,17 +249,17 @@ struct TabCompositorWrapper: NSViewRepresentable {
             context.coordinator.lastSize = size
             context.coordinator.lastVersion = compositorVersion
         }
-
+        
         // Mark current tab as accessed (resets unload timer)
         if let currentTab = browserManager.currentTab(for: windowState),
            let headerOverlay = context.coordinator.headerOverlay {
             browserManager.compositorManager.markTabAccessed(currentTab.id)
             setupHoverCallbacks(for: currentTab)
+            setupHeaderOverlayCallback(for: currentTab, overlay: headerOverlay, containerView: nsView)
 
-            // Only set up header overlay callback when tab changes
-            if tabChanged {
-                print("[WEBHEADERDRAG] Tab switched to: \(currentTab.name), setting up overlay & triggering detection")
-                setupHeaderOverlayCallback(for: currentTab, overlay: headerOverlay, containerView: nsView)
+            // Trigger header detection when tab becomes visible
+            if currentId != context.coordinator.lastCurrentId {
+                print("[WEBHEADERDRAG] Tab switched to: \(currentTab.name), triggering detection")
                 currentTab.detectHeader()
             }
         }
@@ -442,47 +439,21 @@ struct TabCompositorWrapper: NSViewRepresentable {
                 }
 
                 if let bounds = bounds {
-                    // Find the webView in the containerView to get its offset
-                    let webViews = containerView.subviews.compactMap { $0 as? WKWebView }
-                    guard let webView = webViews.first else {
-                        print("[WEBHEADERDRAG] ⚠️ No WKWebView found in containerView")
-                        return
-                    }
-
-                    let containerHeight = containerView.bounds.height
-                    let webViewFrame = webView.frame
-
-                    // JavaScript getBoundingClientRect() gives coordinates relative to webView's viewport (top-left = 0,0)
-                    // We need to:
-                    // 1. Convert from web coordinate space (top-left origin) to AppKit (bottom-left origin)
-                    // 2. Add the webView's offset within the container
-
-                    let jsTop = bounds.origin.y
-                    let jsHeight = bounds.height
-
-                    // First flip within webView space
-                    let webViewRelativeY = webViewFrame.height - jsTop - jsHeight
-
-                    // Then add webView's position in container
-                    let finalY = webViewFrame.minY + webViewRelativeY
-                    let finalX = webViewFrame.minX + bounds.origin.x
-
-                    print("[WEBHEADERDRAG] Coordinate translation:")
-                    print("  Container: \(containerView.bounds)")
-                    print("  WebView frame: \(webViewFrame)")
-                    print("  JS coords (in webView): x=\(bounds.origin.x) y=\(jsTop) w=\(bounds.width) h=\(jsHeight)")
-                    print("  WebView-relative Y: \(webViewRelativeY)")
-                    print("  Final coords (in container): x=\(finalX) y=\(finalY) w=\(bounds.width) h=\(jsHeight)")
+                    // Convert bounds to container view coordinates
+                    let windowHeight = containerView.bounds.height
+                    let flippedY = windowHeight - bounds.origin.y - bounds.height
+                    print("[WEBHEADERDRAG] Converting bounds - windowHeight: \(windowHeight), original y: \(bounds.origin.y), flipped y: \(flippedY)")
 
                     overlay.frame = NSRect(
-                        x: finalX,
-                        y: finalY,
+                        x: bounds.origin.x,
+                        y: flippedY,
                         width: bounds.width,
                         height: bounds.height
                     )
                     overlay.show()
                 } else {
-                    print("[WEBHEADERDRAG] Bounds is nil")
+                    print("[WEBHEADERDRAG] Bounds is nil, hiding overlay")
+                    overlay.hide()
                 }
             }
         }
