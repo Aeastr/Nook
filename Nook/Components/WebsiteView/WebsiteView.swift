@@ -67,6 +67,11 @@ struct WebsiteView: View {
                             rightId: splitManager.rightTabId(for: windowState.id),
                             windowState: windowState
                         )
+                        .overlay(alignment: .topLeading) {
+                            HeaderDebugOverlay(
+                                headerBounds: browserManager.currentTab(for: windowState)?.headerBounds
+                            )
+                        }
                         .background(shouldShowSplit ? Color.clear : Color(nsColor: .windowBackgroundColor))
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .clipShape(RoundedRectangle(cornerRadius: {
@@ -636,5 +641,33 @@ struct TabWebViewWrapper: NSViewRepresentable {
 
     func updateNSView(_ webView: WKWebView, context: Context) {
         // The webView is managed by the Tab
+    }
+}
+
+// MARK: - Debug Overlay
+private struct HeaderDebugOverlay: View {
+    let headerBounds: CGRect?
+
+    var body: some View {
+        GeometryReader { proxy in
+            if let bounds = headerBounds,
+               bounds.width > 0,
+               bounds.height > 0 {
+                let containerHeight = proxy.size.height
+                let flippedY = max(0, containerHeight - bounds.origin.y - bounds.height)
+
+                Rectangle()
+                    .fill(Color.red.opacity(0.35))
+                    .frame(width: bounds.width, height: bounds.height)
+//                    .position(
+//                        x: bounds.origin.x + bounds.width / 2,
+//                        y: flippedY + bounds.height / 2
+//                    )
+            }
+            else{
+                Text("was 0 ")
+            }
+        }
+        .allowsHitTesting(false)
     }
 }
