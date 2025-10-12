@@ -161,7 +161,6 @@ public final class Tab: NSObject, Identifiable, WKDownloadDelegate {
 
     // MARK: - Header Bounds for Draggable Overlay
     var headerBounds: CGRect? = nil
-    var headerSelector: String? = nil
     var onHeaderBoundsChange: ((CGRect?) -> Void)? = nil
     private var isDetectingHeader = false
     private var lastHeaderDetectionTime: Date?
@@ -2471,19 +2470,16 @@ extension Tab: WKScriptMessageHandler {
                let y = dict["y"] as? Double,
                let width = dict["width"] as? Double,
                let height = dict["height"] as? Double {
-                let selector = dict["selector"] as? String
-                print("[WEBHEADERDRAG] Received header bounds: selector=\(selector ?? "<unknown>") x=\(x), y=\(y), width=\(width), height=\(height)")
+                print("[WEBHEADERDRAG] Received header bounds: x=\(x), y=\(y), width=\(width), height=\(height)")
                 DispatchQueue.main.async {
                     // Only update if we have valid dimensions
                     if width > 0 && height > 0 {
                         self.headerBounds = CGRect(x: x, y: y, width: width, height: height)
-                        self.headerSelector = selector
-                        print("[WEBHEADERDRAG] Setting valid header bounds for tab: \(self.name) selector=\(self.headerSelector ?? "<unknown>")")
+                        print("[WEBHEADERDRAG] Setting valid header bounds for tab: \(self.name)")
                         self.onHeaderBoundsChange?(self.headerBounds)
                     } else {
                         print("[WEBHEADERDRAG] Invalid dimensions, clearing bounds")
                         self.headerBounds = nil
-                        self.headerSelector = nil
                         self.onHeaderBoundsChange?(nil)
                     }
                 }
@@ -2492,7 +2488,6 @@ extension Tab: WKScriptMessageHandler {
                 print("[WEBHEADERDRAG] No header detected, clearing bounds")
                 DispatchQueue.main.async {
                     self.headerBounds = nil
-                    self.headerSelector = nil
                     self.onHeaderBoundsChange?(nil)
                 }
             }

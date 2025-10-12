@@ -94,6 +94,13 @@
     setTimeout(detectAndReport, 100);
   }
 
+  // Re-detect on scroll (header might become sticky/fixed)
+  let scrollTimeout;
+  window.addEventListener("scroll", () => {
+    clearTimeout(scrollTimeout);
+    scrollTimeout = setTimeout(detectAndReport, 150);
+  }, { passive: true });
+
   // Re-detect on resize
   let resizeTimeout;
   window.addEventListener("resize", () => {
