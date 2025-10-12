@@ -138,16 +138,14 @@ public final class Tab: NSObject, Identifiable, WKDownloadDelegate {
     var webView: WKWebView? {
         if _webView == nil {
             print("🔧 [Tab] First webView access, calling setupWebView() for: \(url.absoluteString)")
-            print("[WEBHEADERDRAG] 🆕 Creating new webView for tab: \(name)")
             setupWebView()
         }
         return _webView
     }
-
+    
     var activeWebView: WKWebView {
         if _webView == nil {
             print("🔧 [Tab] First webView access, calling setupWebView() for: \(url.absoluteString)")
-            print("[WEBHEADERDRAG] 🆕 Creating new webView for tab: \(name)")
             setupWebView()
         }
         return _webView!
@@ -158,10 +156,6 @@ public final class Tab: NSObject, Identifiable, WKDownloadDelegate {
     // MARK: - Link Hover Callback
     var onLinkHover: ((String?) -> Void)? = nil
     var onCommandHover: ((String?) -> Void)? = nil
-
-    // MARK: - Header Bounds for Draggable Overlay
-    var headerBounds: CGRect? = nil
-    var onHeaderBoundsChange: ((CGRect?) -> Void)? = nil
 
     private let themeColorObservedWebViews = NSHashTable<AnyObject>.weakObjects()
     private let navigationStateObservedWebViews = NSHashTable<AnyObject>.weakObjects()
@@ -387,8 +381,7 @@ public final class Tab: NSObject, Identifiable, WKDownloadDelegate {
         _webView?.configuration.userContentController.removeScriptMessageHandler(forName: "historyStateDidChange")
         _webView?.configuration.userContentController.removeScriptMessageHandler(forName: "NookIdentity")
         _webView?.configuration.userContentController.removeScriptMessageHandler(forName: "nookWebStore")
-        _webView?.configuration.userContentController.removeScriptMessageHandler(forName: "headerBounds")
-
+        
         // Add handlers
         _webView?.configuration.userContentController.add(self, name: "linkHover")
         _webView?.configuration.userContentController.add(self, name: "commandHover")
@@ -398,26 +391,17 @@ public final class Tab: NSObject, Identifiable, WKDownloadDelegate {
         _webView?.configuration.userContentController.add(self, name: "backgroundColor_\(id.uuidString)")
         _webView?.configuration.userContentController.add(self, name: "historyStateDidChange")
         _webView?.configuration.userContentController.add(self, name: "NookIdentity")
-        _webView?.configuration.userContentController.add(self, name: "headerBounds")
         
         // Add Web Store integration handler (only if experimental extensions are enabled)
         if let browserManager = browserManager,
            browserManager.settingsManager.experimentalExtensions {
             webStoreHandler = WebStoreScriptHandler(browserManager: browserManager)
             _webView?.configuration.userContentController.add(webStoreHandler!, name: "nookWebStore")
-
+            
             // Inject Web Store script at setup time if already on Chrome Web Store
             if BrowserConfiguration.isChromeWebStore(url), let script = BrowserConfiguration.webStoreInjectorScript() {
                 _webView?.configuration.userContentController.addUserScript(script)
             }
-        }
-
-        // Inject Header Detector script for draggable window overlay
-        if let headerScript = BrowserConfiguration.headerDetectorScript() {
-            _webView?.configuration.userContentController.addUserScript(headerScript)
-            print("[WEBHEADERDRAG] Injected header detector script for tab: \(name)")
-        } else {
-            print("[WEBHEADERDRAG] ⚠️ Failed to load header detector script")
         }
 
         _webView?.customUserAgent =
@@ -565,7 +549,6 @@ public final class Tab: NSObject, Identifiable, WKDownloadDelegate {
     }
 
     func loadURL(_ newURL: URL) {
-        print("[WEBHEADERDRAG] 🌐 Loading URL in tab '\(name)': \(newURL.absoluteString)")
         self.url = newURL
         loadingState = .didStartProvisionalNavigation
         
@@ -1791,95 +1774,9 @@ public final class Tab: NSObject, Identifiable, WKDownloadDelegate {
         }
     }
 
-    // MARK: - Header Detection
-    private func triggerHeaderDetection(in webView: WKWebView) {
-        print("[WEBHEADERDRAG] Manually triggering header detection")
-
-        // Simple script that triggers the existing detection logic
-        let triggerScript = """
-        (function() {
-            if (!window.webkit || !window.webkit.messageHandlers || !window.webkit.messageHandlers.headerBounds) {
-                return '❌ Message handler not available';
-            }
-
-            // Look for header elements - check 'header' first since it's most common
-            const selectors = ['header', 'nav', '[role="banner"]', '[role="navigation"]'];
-            let output = [];
-
-            for (const selector of selectors) {
-                const elements = document.querySelectorAll(selector);
-                if (elements.length === 0) continue;
-
-                output.push(selector + ': ' + elements.length + ' found');
-
-                for (let i = 0; i < Math.min(elements.length, 2); i++) {
-                    const rect = elements[i].getBoundingClientRect();
-                    const vw = window.innerWidth;
-
-                    const isNearTop = rect.top >= -100 && rect.top <= 100;
-                    const isWideEnough = rect.width > vw * 0.5;
-                    const isTallEnough = rect.height >= 30 && rect.height <= 200;
-                    const isVisible = rect.height > 0 && rect.width > 0;
-
-                    // Show why it failed
-                    let reasons = [];
-                    if (!isVisible) reasons.push('invisible');
-                    if (!isNearTop) reasons.push('top=' + rect.top.toFixed(0));
-                    if (!isWideEnough) reasons.push('width=' + rect.width.toFixed(0) + '/' + vw.toFixed(0));
-                    if (!isTallEnough) reasons.push('height=' + rect.height.toFixed(0));
-
-                    if (reasons.length === 0) {
-                        // It matches!
-                        window.webkit.messageHandlers.headerBounds.postMessage({
-                            x: rect.left,
-                            y: Math.max(0, rect.top),
-                            width: rect.width,
-                            height: rect.height,
-                            selector: selector
-                        });
-                        return '✅ ' + selector + '[' + i + ']';
-                    }
-
-                    output.push('  [' + i + '] FAIL: ' + reasons.join(', '));
-                }
-            }
-
-            window.webkit.messageHandlers.headerBounds.postMessage({ x: 0, y: 0, width: 0, height: 0 });
-            return '❌ ' + output.join(' | ');
-        })();
-        """
-
-        webView.evaluateJavaScript(triggerScript) { result, error in
-            if let error = error {
-                print("[WEBHEADERDRAG] ⚠️ Error triggering header detection: \(error.localizedDescription)")
-            } else {
-                print("[WEBHEADERDRAG] JavaScript result type: \(type(of: result)), value: \(String(describing: result))")
-                if let debugOutput = result as? String, !debugOutput.isEmpty {
-                    print("[WEBHEADERDRAG] JavaScript Debug Output:\n\(debugOutput)")
-                } else {
-                    print("[WEBHEADERDRAG] ⚠️ No debug output from JavaScript (result is empty or wrong type)")
-                }
-            }
-        }
-    }
-
-    /// Public method to trigger header detection (for tab switches)
-    func detectHeader() {
-        guard let webView = _webView else {
-            print("[WEBHEADERDRAG] Cannot detect header - no webView")
-            return
-        }
-        print("[WEBHEADERDRAG] Public detectHeader() called for tab: \(name)")
-        triggerHeaderDetection(in: webView)
-    }
-
     func activate() {
-        print("[WEBHEADERDRAG] 🔄 Tab activated: \(name)")
         browserManager?.tabManager.setActiveTab(self)
         // Media state is automatically tracked by injected script
-
-        // Trigger header detection when tab is activated
-        detectHeader()
     }
 
     func pause() {
@@ -2054,7 +1951,6 @@ extension Tab: WKNavigationDelegate {
         didStartProvisionalNavigation navigation: WKNavigation!
     ) {
         print("🌐 [Tab] didStartProvisionalNavigation for: \(webView.url?.absoluteString ?? "unknown")")
-        print("[WEBHEADERDRAG] 🔄 Navigation started for tab: \(name)")
         loadingState = .didStartProvisionalNavigation
         if #available(macOS 15.5, *) {
             ExtensionManager.shared.notifyTabPropertiesChanged(self, properties: [.loading])
@@ -2102,7 +1998,6 @@ extension Tab: WKNavigationDelegate {
         didFinish navigation: WKNavigation!
     ) {
         print("✅ [Tab] didFinish navigation for: \(webView.url?.absoluteString ?? "unknown")")
-        print("[WEBHEADERDRAG] 📄 Page finished loading for tab: \(name)")
         loadingState = .didFinish
         if #available(macOS 15.5, *) {
             ExtensionManager.shared.notifyTabPropertiesChanged(self, properties: [.loading])
@@ -2164,8 +2059,6 @@ extension Tab: WKNavigationDelegate {
         injectPiPStateListener(to: webView)
         injectMediaDetection(to: webView)
         injectHistoryStateObserver(into: webView)
-        print("[WEBHEADERDRAG] 📍 Calling triggerHeaderDetection from didFinish for tab: \(name)")
-        triggerHeaderDetection(in: webView)
         updateNavigationStateEnhanced(source: "didCommit")
 
         // Trigger background color extraction
@@ -2442,34 +2335,6 @@ extension Tab: WKScriptMessageHandler {
 
         case "NookIdentity":
             handleOAuthRequest(message: message)
-
-        case "headerBounds":
-            if let dict = message.body as? [String: Any],
-               let x = dict["x"] as? Double,
-               let y = dict["y"] as? Double,
-               let width = dict["width"] as? Double,
-               let height = dict["height"] as? Double {
-                print("[WEBHEADERDRAG] Received header bounds: x=\(x), y=\(y), width=\(width), height=\(height)")
-                DispatchQueue.main.async {
-                    // Only update if we have valid dimensions
-                    if width > 0 && height > 0 {
-                        self.headerBounds = CGRect(x: x, y: y, width: width, height: height)
-                        print("[WEBHEADERDRAG] Setting valid header bounds for tab: \(self.name)")
-                        self.onHeaderBoundsChange?(self.headerBounds)
-                    } else {
-                        print("[WEBHEADERDRAG] Invalid dimensions, clearing bounds")
-                        self.headerBounds = nil
-                        self.onHeaderBoundsChange?(nil)
-                    }
-                }
-            } else {
-                // No header detected, clear bounds
-                print("[WEBHEADERDRAG] No header detected, clearing bounds")
-                DispatchQueue.main.async {
-                    self.headerBounds = nil
-                    self.onHeaderBoundsChange?(nil)
-                }
-            }
 
         default:
             break

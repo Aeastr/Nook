@@ -35,16 +35,6 @@ struct TopBarView: View {
                 .buttonStyle(NavButtonStyle())
                 .foregroundStyle(Color.primary)
             }
-            Menu("debug", systemImage: "ant") {
-                
-                Button("target", systemImage: "target"){
-                    if let currentTab = browserManager.currentTab(for: windowState) {
-                        print("[WEBHEADERDRAG] 🐛 DEBUG BUTTON PRESSED - Triggering detection for: \(currentTab.name)")
-                        currentTab.detectHeader()
-                    }
-                }
-            }
-//            .menuStyle(NavMenuStyle())
             
             Spacer()
             
@@ -140,6 +130,7 @@ struct TopBarView: View {
                 .frame(maxWidth: 400)
             }
             
+            Spacer()
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)

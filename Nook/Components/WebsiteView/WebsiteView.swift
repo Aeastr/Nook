@@ -153,7 +153,6 @@ struct TabCompositorWrapper: NSViewRepresentable {
         var lastSize: CGSize = .zero
         var lastVersion: Int = -1
         var frameObserver: NSObjectProtocol? = nil
-        weak var headerOverlay: HeaderDragOverlay? = nil
         init(browserManager: BrowserManager?, windowState: BrowserWindowState) {
             self.browserManager = browserManager
             self.windowState = windowState
@@ -184,12 +183,6 @@ struct TabCompositorWrapper: NSViewRepresentable {
         overlay.layer?.zPosition = 10_000
         containerView.addSubview(overlay)
 
-        // Install header drag overlay on top for draggable website headers
-        let headerOverlay = HeaderDragOverlay(frame: .zero)
-        headerOverlay.layer?.zPosition = 10_001  // Above split overlay
-        containerView.addSubview(headerOverlay)
-        context.coordinator.headerOverlay = headerOverlay
-
         // Observe size changes to recompute pane layout when available width changes
         let coord = context.coordinator
         coord.frameObserver = NotificationCenter.default.addObserver(
@@ -206,15 +199,8 @@ struct TabCompositorWrapper: NSViewRepresentable {
         // Set up link hover callbacks for current tab
         if let currentTab = browserManager.currentTab(for: windowState) {
             setupHoverCallbacks(for: currentTab)
-            setupHeaderOverlayCallback(for: currentTab, overlay: headerOverlay, containerView: containerView)
-
-            // Trigger initial header detection
-            print("[WEBHEADERDRAG] Initial tab display: \(currentTab.name), triggering detection")
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                currentTab.detectHeader()
-            }
         }
-
+        
         return containerView
     }
 
@@ -223,13 +209,6 @@ struct TabCompositorWrapper: NSViewRepresentable {
         let size = nsView.bounds.size
         let currentId = browserManager.currentTab(for: windowState)?.id
         let compositorVersion = windowState.compositorVersion
-
-        // Log tab changes
-        if let currentTab = browserManager.currentTab(for: windowState),
-           currentId != context.coordinator.lastCurrentId {
-            print("[WEBHEADERDRAG] 🔀 Current tab changed in compositor to: \(currentTab.name)")
-        }
-
         let needsRebuild =
             context.coordinator.lastIsSplit != isSplit ||
             context.coordinator.lastLeftId != leftId ||
@@ -251,17 +230,9 @@ struct TabCompositorWrapper: NSViewRepresentable {
         }
         
         // Mark current tab as accessed (resets unload timer)
-        if let currentTab = browserManager.currentTab(for: windowState),
-           let headerOverlay = context.coordinator.headerOverlay {
+        if let currentTab = browserManager.currentTab(for: windowState) {
             browserManager.compositorManager.markTabAccessed(currentTab.id)
             setupHoverCallbacks(for: currentTab)
-            setupHeaderOverlayCallback(for: currentTab, overlay: headerOverlay, containerView: nsView)
-
-            // Trigger header detection when tab becomes visible
-            if currentId != context.coordinator.lastCurrentId {
-                print("[WEBHEADERDRAG] Tab switched to: \(currentTab.name), triggering detection")
-                currentTab.detectHeader()
-            }
         }
     }
 
@@ -271,9 +242,8 @@ struct TabCompositorWrapper: NSViewRepresentable {
 
     private func updateCompositor(_ containerView: NSView) {
         // Remove all existing webview subviews
-        // Preserve overlays if present, then re-add
+        // Preserve the last overlay subview if present, then re-add
         let overlay = containerView.subviews.compactMap { $0 as? SplitDropCaptureView }.first
-        let headerOverlay = containerView.subviews.compactMap { $0 as? HeaderDragOverlay }.first
         containerView.subviews.forEach { $0.removeFromSuperview() }
         
         // Add tabs that should be displayed in this window. If split view is active, show two panes;
@@ -361,9 +331,8 @@ struct TabCompositorWrapper: NSViewRepresentable {
             
         }
 
-
-
-        // Re-add split overlay on top
+  
+        // Re-add overlay on top
         if let overlay = overlay {
             overlay.frame = containerView.bounds
             overlay.autoresizingMask = [NSView.AutoresizingMask.width, NSView.AutoresizingMask.height]
@@ -380,12 +349,6 @@ struct TabCompositorWrapper: NSViewRepresentable {
             newOverlay.windowId = windowState.id
             newOverlay.layer?.zPosition = 10_000
             containerView.addSubview(newOverlay)
-        }
-
-        // Re-add header drag overlay on top
-        if let headerOverlay = headerOverlay {
-            containerView.addSubview(headerOverlay)
-            headerOverlay.layer?.zPosition = 10_001
         }
     }
 
@@ -419,51 +382,12 @@ struct TabCompositorWrapper: NSViewRepresentable {
                 }
             }
         }
-
+        
         // Set up command hover callback
         tab.onCommandHover = { [self] href in
             DispatchQueue.main.async {
                 self.isCommandPressed = href != nil
             }
-        }
-    }
-
-    private func setupHeaderOverlayCallback(for tab: Tab, overlay: HeaderDragOverlay, containerView: NSView) {
-        print("[WEBHEADERDRAG] Setting up header overlay callback for tab: \(tab.name)")
-        // Set up header bounds change callback
-        tab.onHeaderBoundsChange = { [weak overlay, weak containerView] bounds in
-            DispatchQueue.main.async {
-                guard let overlay = overlay, let containerView = containerView else {
-                    print("[WEBHEADERDRAG] Overlay or containerView is nil in callback")
-                    return
-                }
-
-                if let bounds = bounds {
-                    // Convert bounds to container view coordinates
-                    let windowHeight = containerView.bounds.height
-                    let flippedY = windowHeight - bounds.origin.y - bounds.height
-                    print("[WEBHEADERDRAG] Converting bounds - windowHeight: \(windowHeight), original y: \(bounds.origin.y), flipped y: \(flippedY)")
-
-                    overlay.frame = NSRect(
-                        x: bounds.origin.x,
-                        y: flippedY,
-                        width: bounds.width,
-                        height: bounds.height
-                    )
-                    overlay.show()
-                } else {
-                    print("[WEBHEADERDRAG] Bounds is nil, hiding overlay")
-                    overlay.hide()
-                }
-            }
-        }
-
-        // Immediately update with current bounds if available
-        if let bounds = tab.headerBounds {
-            print("[WEBHEADERDRAG] Tab already has header bounds, applying immediately: \(bounds)")
-            tab.onHeaderBoundsChange?(bounds)
-        } else {
-            print("[WEBHEADERDRAG] Tab has no header bounds yet")
         }
     }
 
