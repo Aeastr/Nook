@@ -164,19 +164,44 @@ class BrowserConfiguration {
     }
     
     // MARK: - Chrome Web Store Integration
-    
+
     /// Get the Web Store injector script
     static func webStoreInjectorScript() -> WKUserScript? {
         guard let scriptPath = Bundle.main.path(forResource: "WebStoreInjector", ofType: "js"),
               let scriptSource = try? String(contentsOfFile: scriptPath, encoding: .utf8) else {
             return nil
         }
-        
+
         return WKUserScript(
             source: scriptSource,
             injectionTime: .atDocumentEnd,
             forMainFrameOnly: true
         )
+    }
+
+    // MARK: - Header Detection
+
+    /// Get the Header Detector script for draggable window overlay
+    static func headerDetectorScript() -> WKUserScript? {
+        guard let scriptPath = Bundle.main.path(forResource: "HeaderDetector", ofType: "js"),
+              let scriptSource = try? String(contentsOfFile: scriptPath, encoding: .utf8) else {
+            return nil
+        }
+
+        return WKUserScript(
+            source: scriptSource,
+            injectionTime: .atDocumentStart,
+            forMainFrameOnly: true
+        )
+    }
+
+    /// Get the raw header detector script source for manual evaluation
+    static func headerDetectorScriptSource() -> String? {
+        guard let scriptPath = Bundle.main.path(forResource: "HeaderDetector", ofType: "js"),
+              let scriptSource = try? String(contentsOfFile: scriptPath, encoding: .utf8) else {
+            return nil
+        }
+        return scriptSource
     }
     
     /// Check if URL is a Chrome Web Store page
