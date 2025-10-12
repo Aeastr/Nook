@@ -162,6 +162,8 @@ public final class Tab: NSObject, Identifiable, WKDownloadDelegate {
     // MARK: - Header Bounds for Draggable Overlay
     var headerBounds: CGRect? = nil
     var onHeaderBoundsChange: ((CGRect?) -> Void)? = nil
+    private var isDetectingHeader = false
+    private var lastHeaderDetectionTime: Date?
 
     private let themeColorObservedWebViews = NSHashTable<AnyObject>.weakObjects()
     private let navigationStateObservedWebViews = NSHashTable<AnyObject>.weakObjects()
@@ -1795,16 +1797,28 @@ public final class Tab: NSObject, Identifiable, WKDownloadDelegate {
     private func triggerHeaderDetection(in webView: WKWebView) {
         print("[WEBHEADERDRAG] Manually triggering header detection")
 
-        // Simple script that triggers the existing detection logic
+        // Simple script that will retry if viewport isn't ready
         let triggerScript = """
         (function() {
-            if (!window.webkit || !window.webkit.messageHandlers || !window.webkit.messageHandlers.headerBounds) {
-                return '❌ Message handler not available';
-            }
+            function tryDetect(attempt) {
+                if (!window.webkit || !window.webkit.messageHandlers || !window.webkit.messageHandlers.headerBounds) {
+                    return '❌ Message handler not available';
+                }
 
-            // Look for header elements - check 'header' first since it's most common
-            const selectors = ['header', 'nav', '[role="banner"]', '[role="navigation"]'];
-            let output = [];
+                const vw = window.innerWidth;
+
+                // If viewport width is 0, retry up to 5 times with 100ms delay
+                if (vw === 0) {
+                    if (attempt < 5) {
+                        setTimeout(function() { tryDetect(attempt + 1); }, 100);
+                        return '⏳ Retrying (attempt ' + attempt + ', width=0)';
+                    }
+                    return '❌ Viewport still not ready after 5 attempts';
+                }
+
+                // Look for header elements
+                const selectors = ['header', 'nav', '[role="banner"]', '[role="navigation"]'];
+                let output = [];
 
             for (const selector of selectors) {
                 const elements = document.querySelectorAll(selector);
@@ -1814,9 +1828,9 @@ public final class Tab: NSObject, Identifiable, WKDownloadDelegate {
 
                 for (let i = 0; i < Math.min(elements.length, 2); i++) {
                     const rect = elements[i].getBoundingClientRect();
-                    const vw = window.innerWidth;
 
-                    const isNearTop = rect.top >= -100 && rect.top <= 100;
+                    // More lenient: allow headers from -300px to +100px (catches sticky headers)
+                    const isNearTop = rect.top >= -300 && rect.top <= 100;
                     const isWideEnough = rect.width > vw * 0.5;
                     const isTallEnough = rect.height >= 30 && rect.height <= 200;
                     const isVisible = rect.height > 0 && rect.width > 0;
@@ -1829,10 +1843,13 @@ public final class Tab: NSObject, Identifiable, WKDownloadDelegate {
                     if (!isTallEnough) reasons.push('height=' + rect.height.toFixed(0));
 
                     if (reasons.length === 0) {
-                        // It matches!
+                        // It matches! Add visual debug highlight
+                        element.style.outline = '3px solid red';
+                        element.style.backgroundColor = 'rgba(255, 0, 0, 0.2)';
+
                         window.webkit.messageHandlers.headerBounds.postMessage({
                             x: rect.left,
-                            y: Math.max(0, rect.top),
+                            y: rect.top,
                             width: rect.width,
                             height: rect.height,
                             selector: selector
@@ -1846,6 +1863,10 @@ public final class Tab: NSObject, Identifiable, WKDownloadDelegate {
 
             window.webkit.messageHandlers.headerBounds.postMessage({ x: 0, y: 0, width: 0, height: 0 });
             return '❌ ' + output.join(' | ');
+        }
+
+        // Start detection
+        return tryDetect(1);
         })();
         """
 
