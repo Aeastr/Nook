@@ -51,6 +51,7 @@ struct WebsiteView: View {
     @State private var hoveredLink: String?
     @State private var isCommandPressed: Bool = false
     @State private var isDropTargeted: Bool = false
+    @State private var headerRect: CGRect?
 
     var body: some View {
         ZStack() {
@@ -61,6 +62,7 @@ struct WebsiteView: View {
                             browserManager: browserManager,
                             hoveredLink: $hoveredLink,
                             isCommandPressed: $isCommandPressed,
+                            headerRect: $headerRect,
                             splitFraction: splitManager.dividerFraction(for: windowState.id),
                             isSplit: splitManager.isSplit(for: windowState.id),
                             leftId: splitManager.leftTabId(for: windowState.id),
@@ -87,6 +89,19 @@ struct WebsiteView: View {
                                     .environment(browserManager)
                                     .environment(splitManager)
                                     .environment(windowState)
+                            }
+                        }
+                        // Header debug overlay
+                        .overlay(alignment: .topLeading) {
+                            if let rect = headerRect {
+                                Color.red
+                                    .opacity(0.5)
+                                    .frame(width: rect.width, height: rect.height)
+//                                    .offset(x: rect.origin.x, y: rect.origin.y)
+                                    .allowsHitTesting(false)
+                            }
+                            else{
+                                Text("no rect found")
                             }
                         }
                     }
@@ -136,6 +151,7 @@ struct TabCompositorWrapper: NSViewRepresentable {
     let browserManager: BrowserManager
     @Binding var hoveredLink: String?
     @Binding var isCommandPressed: Bool
+    @Binding var headerRect: CGRect?
     var splitFraction: CGFloat
     var isSplit: Bool
     var leftId: UUID?
@@ -382,11 +398,18 @@ struct TabCompositorWrapper: NSViewRepresentable {
                 }
             }
         }
-        
+
         // Set up command hover callback
         tab.onCommandHover = { [self] href in
             DispatchQueue.main.async {
                 self.isCommandPressed = href != nil
+            }
+        }
+
+        // Set up header position callback
+        tab.onHeaderPositionChange = { [self] rect in
+            DispatchQueue.main.async {
+                self.headerRect = rect
             }
         }
     }

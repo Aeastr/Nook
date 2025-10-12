@@ -156,6 +156,7 @@ public final class Tab: NSObject, Identifiable, WKDownloadDelegate {
     // MARK: - Link Hover Callback
     var onLinkHover: ((String?) -> Void)? = nil
     var onCommandHover: ((String?) -> Void)? = nil
+    var onHeaderPositionChange: ((CGRect?) -> Void)? = nil
 
     private let themeColorObservedWebViews = NSHashTable<AnyObject>.weakObjects()
     private let navigationStateObservedWebViews = NSHashTable<AnyObject>.weakObjects()
@@ -391,6 +392,7 @@ public final class Tab: NSObject, Identifiable, WKDownloadDelegate {
         _webView?.configuration.userContentController.add(self, name: "backgroundColor_\(id.uuidString)")
         _webView?.configuration.userContentController.add(self, name: "historyStateDidChange")
         _webView?.configuration.userContentController.add(self, name: "NookIdentity")
+        _webView?.configuration.userContentController.add(self, name: "headerPosition")
         
         // Add Web Store integration handler (only if experimental extensions are enabled)
         if let browserManager = browserManager,
@@ -1675,7 +1677,54 @@ public final class Tab: NSObject, Identifiable, WKDownloadDelegate {
             }
         }
     }
-    
+
+    private func injectHeaderDetection(to webView: WKWebView) {
+        let headerDetectionScript = """
+        (function() {
+            function detectHeader() {
+                // Try common header selectors
+                var headerElement = document.querySelector('header') ||
+                                  document.querySelector('[role="banner"]') ||
+                                  document.querySelector('nav') ||
+                                  document.querySelector('.header') ||
+                                  document.querySelector('#header');
+
+                if (headerElement) {
+                    var rect = headerElement.getBoundingClientRect();
+                    var headerData = {
+                        x: rect.x,
+                        y: rect.y,
+                        width: rect.width,
+                        height: rect.height
+                    };
+
+                    if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.headerPosition) {
+                        window.webkit.messageHandlers.headerPosition.postMessage(headerData);
+                    }
+                } else {
+                    // Send null if no header found
+                    if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.headerPosition) {
+                        window.webkit.messageHandlers.headerPosition.postMessage(null);
+                    }
+                }
+            }
+
+            // Run detection after DOM is ready
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', detectHeader);
+            } else {
+                detectHeader();
+            }
+        })();
+        """
+
+        webView.evaluateJavaScript(headerDetectionScript) { result, error in
+            if let error = error {
+                print("Error injecting header detection JavaScript: \(error.localizedDescription)")
+            }
+        }
+    }
+
     private func injectHistoryStateObserver(into webView: WKWebView) {
         let historyScript = """
         (function() {
@@ -2059,6 +2108,7 @@ extension Tab: WKNavigationDelegate {
         injectPiPStateListener(to: webView)
         injectMediaDetection(to: webView)
         injectHistoryStateObserver(into: webView)
+        injectHeaderDetection(to: webView)
         updateNavigationStateEnhanced(source: "didCommit")
 
         // Trigger background color extraction
@@ -2333,6 +2383,24 @@ extension Tab: WKScriptMessageHandler {
                 }
             }
 
+        case "headerPosition":
+            if message.body is NSNull {
+                // No header found
+                DispatchQueue.main.async {
+                    self.onHeaderPositionChange?(nil)
+                }
+            } else if let dict = message.body as? [String: Any],
+                      let x = dict["x"] as? CGFloat,
+                      let y = dict["y"] as? CGFloat,
+                      let width = dict["width"] as? CGFloat,
+                      let height = dict["height"] as? CGFloat {
+                DispatchQueue.main.async {
+                    let rect = CGRect(x: x, y: y, width: width, height: height)
+                    print("🎯 [Tab] Header detected at: \(rect)")
+                    self.onHeaderPositionChange?(rect)
+                }
+            }
+
         case "NookIdentity":
             handleOAuthRequest(message: message)
 
@@ -2559,6 +2627,7 @@ extension Tab: WKUIDelegate {
         newWebView.configuration.userContentController.add(newTab, name: "backgroundColor_\(newTab.id.uuidString)")
         newWebView.configuration.userContentController.add(newTab, name: "historyStateDidChange")
         newWebView.configuration.userContentController.add(newTab, name: "NookIdentity")
+        newWebView.configuration.userContentController.add(newTab, name: "headerPosition")
         
         // Set custom user agent
         newWebView.customUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15"
